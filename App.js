@@ -12,6 +12,7 @@ export default function App() {
 
   let [fontsLoaded] = useFonts({
     "Caviar_Dreams_Bold": require("./assets/fonts/CaviarDreams_Bold.ttf"),
+    "Fredoka_Regular": require("./assets/fonts/Fredoka-Regular.ttf"),
   });
 
   if (!fontsLoaded) {

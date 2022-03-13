@@ -1,42 +1,60 @@
-import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import React, { useState } from "react";
+import { Pressable, View, Text, StyleSheet } from "react-native";
 import Checkbox from "expo-checkbox";
-import { COLORS, SIZES, FONTS } from "../constants";
+import { COLORS, SIZES, FONTS, SHADOW } from "../constants";
 
 export default function Card(props) {
+  // const [isChecked, setChecked] = useState(props.task.isCompleted);
   return (
-    <View style={styles.container}>
-      <Text style={styles.text}>{props.text}</Text>
-      <Checkbox style={styles.checkbox} />
+    <View
+      style={{
+        ...styles.container,
+        backgroundColor: props.isActive ? COLORS.accent : COLORS.secondary,
+        borderColor: props.task.notify ? COLORS.accent : COLORS.secondary,
+      }}
+    >
+      <Text
+        style={{
+          ...styles.text,
+          textDecorationLine: props.task.completed ? "line-through" : "none",
+          color: props.isActive ? COLORS.secondary : COLORS.accent,
+        }}
+        // onLongPress={() => props.deleteTask(props.task.id)}
+      >
+        {props.task.taskName}
+      </Text>
+      {/* <Checkbox
+        style={styles.checkbox}
+        value={props.task.completed}
+        onValueChange={() => props.setCompleted(props.task.id)}
+      /> */}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
+    ...SHADOW,
     width: "97%",
     paddingVertical: 5,
     paddingHorizontal: SIZES.padding,
     margin: SIZES.margin,
     borderRadius: SIZES.borderRadius,
-    elevation: 12,
-    shadowColor: COLORS.secondary,
-    shadowOffset: { width: 2, height: 12 },
-    shadowRadius: 12,
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: COLORS.secondary,
+    borderWidth: 5,
   },
   text: {
     ...FONTS.h2_bold,
-    color: COLORS.primary,
+    flex: 1,
+    paddingRight: 5,
   },
   checkbox: {
     height: 26,
     width: 26,
-    color: COLORS.primary,
+    color: "black",
     borderRadius: SIZES.borderRadius,
-    borderColor: COLORS.accent,
+    // borderColor: COLORS.accent,
     backgroundColor: COLORS.primary,
     marginLeft: "auto",
   },

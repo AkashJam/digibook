@@ -1,7 +1,7 @@
 const COLORS = {
-  primary: "#270722",
-  secondary: "#F85E00",
-  accent: "#FFFD82",
+  primary: "#00A6FB",
+  secondary: "#363635",
+  accent: "#F6F0ED",
 };
 
 const SIZES = {
@@ -11,11 +11,20 @@ const SIZES = {
   textBoxRadius: 25,
   h1: 24,
   h2: 20,
+  p: 16,
 };
 
 const FONTS = {
   h1_bold: { fontSize: SIZES.h1, fontFamily: "Caviar_Dreams_Bold" },
   h2_bold: { fontSize: SIZES.h2, fontFamily: "Caviar_Dreams_Bold" },
+  p_regular: { fontSize: SIZES.p, fontFamily: "Fredoka_Regular" },
 };
 
-export { COLORS, SIZES, FONTS };
+const SHADOW = {
+  elevation: 5,
+  shadowColor: COLORS.secondary,
+  shadowOffset: { width: 5, height: 12 },
+  shadowRadius: 12,
+};
+
+export { COLORS, SIZES, FONTS, SHADOW };
