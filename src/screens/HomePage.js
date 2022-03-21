@@ -5,54 +5,43 @@ import {
   StyleSheet,
   StatusBar,
   Platform,
-  TextInput,
-  TouchableOpacity,
-  FlatList,
   Alert,
   Pressable,
 } from "react-native";
-
 import DraggableFlatList from "react-native-draggable-flatlist";
-import {
-  Gesture,
-  GestureDetector,
-  GestureHandlerRootView,
-} from "react-native-gesture-handler";
-import { Card } from "../components";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { Card, ControlButton } from "../components";
 import { COLORS, SIZES, FONTS, SHADOW } from "../constants";
 
 export default function HomePage() {
   const [list, setList] = useState([]);
-  const [value, setValue] = useState("");
+  const [edit, setEdit] = useState(0);
 
   function addTask(taskName) {
-    // let duplicate = list.filter((task) => (task.taskName = newTask.taskName));
-    console.log("task", taskName);
-    // if (!duplicate) {
-    let id = Math.random() * 10000; //Find a new way to calculate the id
-    if (value !== "") {
-      let newTask = {
-        id: id,
-        key: `item-${id}`,
-        taskName: taskName,
-        notify: false,
-        completed: false,
-      };
-      setList((prev) => {
-        return [newTask, ...prev];
-      });
-      setValue("");
-      // alert("Task successfully added");
+    let duplicate = list.filter((task) => task.taskName === taskName);
+    // console.log("task", taskName, duplicate);
+    if (duplicate.length===0) {
+      let id = Math.random() * 10000; //Find a new way to calculate the id
+      if (taskName !== "") {
+        let newTask = {
+          id: id,
+          key: `item-${id}`,
+          taskName: taskName,
+          notify: false,
+          completed: false,
+        };
+        setList((prev) => {
+          return [newTask, ...prev];
+        });
+      } else {
+        alert("Please name the task");
+      }
     } else {
-      alert("Please name the task");
+      alert("Task already exists");
     }
-
-    // } else {
-    //   console.log("duplicate");
-    // }
   }
 
-  manageTask = {
+  const manageTask = {
     setCompleted: (id) => {
       let taskToUpdate = list.filter((todo) => todo.id === id)[0];
       taskToUpdate.completed = !taskToUpdate.completed;
@@ -67,12 +56,12 @@ export default function HomePage() {
       setList((prev) =>
         prev.map((item) => (item.id === id ? taskToUpdate : item))
       );
+      setEdit(0);
     },
 
     notifyToggle: (id) => {
       let taskToUpdate = list.filter((todo) => todo.id === id)[0];
       taskToUpdate.notify = !taskToUpdate.notify;
-      console.log(taskToUpdate.notify)
       setList((prev) =>
         prev.map((item) => (item.id === id ? taskToUpdate : item))
       );
@@ -89,7 +78,6 @@ export default function HomePage() {
           onPress: () => {
             let updatedTasks = list.filter((todo) => todo.id !== id);
             setList(updatedTasks);
-            console.log(updatedTasks);
           },
         },
       ]);
@@ -97,11 +85,38 @@ export default function HomePage() {
   };
 
   const renderItem = ({ item, index, drag, isActive }) => {
-    return (
-      <Pressable onLongPress={drag} onPress={() => manageTask.notifyToggle(item.id)}>
-        <Card task={item} index={index} isActive={isActive} {...manageTask} />
-      </Pressable>
-    );
+    if (edit === item.id) {
+      return <Card task={item} index={index} isEdit={true} {...manageTask} />;
+    } else {
+      let backCount = 0;
+      return (
+        <Pressable
+          onLongPress={drag}
+          onPress={() => {
+            backCount++;
+            clearTimeout(backTimer);
+            if (backCount === 2) {
+              backCount = 0;
+              setEdit(item.id);
+            }
+            const backTimer = setTimeout(() => {
+              if (backCount === 1) {
+                manageTask.notifyToggle(item.id);
+              }
+              backCount = 0;
+            }, 500);
+          }}
+        >
+          <Card
+            task={item}
+            index={index}
+            isEdit={false}
+            isActive={isActive}
+            {...manageTask}
+          />
+        </Pressable>
+      );
+    }
   };
 
   return (
@@ -112,21 +127,10 @@ export default function HomePage() {
           data={list}
           renderItem={renderItem}
           keyExtractor={(item) => `draggable-item-${item.key}`}
-          onDragEnd={(d) => {console.log(d.data),console.log(list),setList(d.data)}}
+          onDragEnd={(d) => setList(d.data)}
         />
       </GestureHandlerRootView>
-      <View style={styles.textBoxWrapper}>
-        <TextInput
-          style={styles.textInput}
-          placeholder="Add New Task"
-          placeholderTextColor={COLORS.secondary}
-          onChangeText={(text) => setValue(text)}
-          value={value}
-        />
-        <TouchableOpacity style={styles.button} onPress={() => addTask(value)}>
-          <Text style={{ ...FONTS.h1_bold }}>+</Text>
-        </TouchableOpacity>
-      </View>
+      <ControlButton addTask={addTask} />
     </View>
   );
 }
@@ -142,42 +146,5 @@ const styles = StyleSheet.create({
     ...FONTS.h1_bold,
     color: COLORS.accent,
     padding: SIZES.padding,
-  },
-  textBoxWrapper: {
-    width: "111%", //The width does not register screen width at 100%
-    position: "absolute",
-    bottom: 0,
-    right: 0,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: SIZES.padding,
-    // margin: SIZES.margin,
-    backgroundColor: COLORS.secondary,
-  },
-  textInput: {
-    ...SHADOW,
-    ...FONTS.p_regular,
-    borderRadius: SIZES.textBoxRadius,
-    backgroundColor: COLORS.primary,
-    height: 44,
-    width: "80%",
-    color: COLORS.accent,
-    marginVertical: SIZES.margin,
-    paddingHorizontal: 20,
-    // borderColor: COLORS.accent,
-    // borderWidth: 3,
-  },
-  button: {
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: COLORS.accent,
-    color: COLORS.primary,
-    height: 44,
-    width: 44,
-    borderRadius: SIZES.textBoxRadius,
-    marginVertical: SIZES.margin,
-    // borderColor: COLORS.accent,
-    // borderWidth: 3,
   },
 });

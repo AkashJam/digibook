@@ -1,9 +1,7 @@
-import { StatusBar } from "expo-status-bar";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import AppLoading from "expo-app-loading";
 import { useFonts } from "expo-font";
-import { HomePage } from "./src/screens"
-// import { Dimensions, StatusBar } from 'react-native'
+import { HomePage, TestPage } from "./src/screens"
 
 export default function App() {
 
@@ -18,11 +16,8 @@ export default function App() {
   if (!fontsLoaded) {
     return <AppLoading />;
   } else {
-    return (
-      // <View style={styles.container}>
-      //   <Text style={{...FONTS.h1_bold}}>yo!</Text>
-      //   <StatusBar style="auto" />
-      // </View>
+    return (  
+      // <TestPage />
       <HomePage />
     );
   }
@@ -30,6 +25,7 @@ export default function App() {
 
 const styles = StyleSheet.create({
   container: {
+    paddingTop: 32,
     flex: 1,
     backgroundColor: "#fff",
     alignItems: "center",

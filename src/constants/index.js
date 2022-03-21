@@ -1,7 +1,11 @@
 const COLORS = {
-  primary: "#00A6FB",
-  secondary: "#363635",
-  accent: "#F6F0ED",
+  primary: "#00A6FB", //Blue Jeans
+  secondary: "#363635", //Jet
+  accent: "#F6F0ED", //Isabelline
+  red: "#FF0000",
+  orange: "#FF8200",
+  yellow: "#D5A021", //GoldenRod
+  green: "#3E8914", //India Green
 };
 
 const SIZES = {
