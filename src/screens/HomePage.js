@@ -1,5 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import {
+  Animated,
+  Dimensions,
   View,
   Text,
   StyleSheet,
@@ -7,20 +9,48 @@ import {
   Platform,
   Alert,
   Pressable,
+  FlatList,
+  ActivityIndicator,
 } from "react-native";
+import { SwipeRow } from "react-native-swipe-list-view";
 import DraggableFlatList from "react-native-draggable-flatlist";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { Card, ControlButton } from "../components";
-import { COLORS, SIZES, FONTS, SHADOW } from "../constants";
+import {
+  GestureHandlerRootView,
+  TouchableOpacity,
+} from "react-native-gesture-handler";
+import { Card, ControlButton, Testcomp } from "../components";
+import { COLORS, SIZES, FONTS, SHADOW, PAGE, PAGEHEAD } from "../constants";
+import { Ionicons } from "@expo/vector-icons";
 
-export default function HomePage() {
+export default function HomePage(props) {
   const [list, setList] = useState([]);
-  const [edit, setEdit] = useState(0);
+
+  const date = new Date().toDateString();
+  const name = " James";
+
+  // const [isLoading, setLoading] = useState(true);
+  // const [data, setData] = useState([]);
+
+  // const getHoliday = async () => {
+  //   try {
+  //     const response = await fetch(
+  //       "https://calendarific.com/api/v2/holidays?api_key=239803d7337674b1c74ae9a53515a86148255669"
+  //     );
+  //     // const json = await response.json();
+  //     console.log(response);
+  //     setData(json);
+  //   } catch (error) {
+  //     console.error(error);
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+
+  // if (date!==new Date().toDateString()) getHoliday();
 
   function addTask(taskName) {
     let duplicate = list.filter((task) => task.taskName === taskName);
-    // console.log("task", taskName, duplicate);
-    if (duplicate.length===0) {
+    if (duplicate.length === 0) {
       let id = Math.random() * 10000; //Find a new way to calculate the id
       if (taskName !== "") {
         let newTask = {
@@ -28,6 +58,7 @@ export default function HomePage() {
           key: `item-${id}`,
           taskName: taskName,
           notify: false,
+          datetime: new Date(),
           completed: false,
         };
         setList((prev) => {
@@ -42,9 +73,29 @@ export default function HomePage() {
   }
 
   const manageTask = {
+    // deactivateNotify: new Promise((res) => {
+    //   Alert.alert("Remove Reminder", "Since you have completed the task, shall I remove the reminder?", [
+    //     {
+    //       text: "Cancel",
+    //       style: "cancel",
+    //       onPress: () => res("dont")
+    //     },
+    //     {
+    //       text: "Yes",
+    //       onPress: () => {
+    //         // taskToUpdate.notify = false
+    //         res("notify")
+    //       },
+    //     },
+    //   ]);
+    // }),
     setCompleted: (id) => {
       let taskToUpdate = list.filter((todo) => todo.id === id)[0];
       taskToUpdate.completed = !taskToUpdate.completed;
+      // if(taskToUpdate.completed === true) {
+      //   console.log(await manageTask.deactivateNotify())
+      // }
+      // console.log(taskToUpdate)
       setList((prev) =>
         prev.map((item) => (item.id === id ? taskToUpdate : item))
       );
@@ -56,7 +107,6 @@ export default function HomePage() {
       setList((prev) =>
         prev.map((item) => (item.id === id ? taskToUpdate : item))
       );
-      setEdit(0);
     },
 
     notifyToggle: (id) => {
@@ -84,50 +134,46 @@ export default function HomePage() {
     },
   };
 
-  const renderItem = ({ item, index, drag, isActive }) => {
-    if (edit === item.id) {
-      return <Card task={item} index={index} isEdit={true} {...manageTask} />;
-    } else {
-      let backCount = 0;
-      return (
-        <Pressable
-          onLongPress={drag}
-          onPress={() => {
-            backCount++;
-            clearTimeout(backTimer);
-            if (backCount === 2) {
-              backCount = 0;
-              setEdit(item.id);
-            }
-            const backTimer = setTimeout(() => {
-              if (backCount === 1) {
-                manageTask.notifyToggle(item.id);
-              }
-              backCount = 0;
-            }, 500);
-          }}
-        >
-          <Card
-            task={item}
-            index={index}
-            isEdit={false}
-            isActive={isActive}
-            {...manageTask}
-          />
-        </Pressable>
-      );
-    }
-  };
-
   return (
-    <View style={styles.container}>
-      <Text style={styles.heading}>What to do today...</Text>
+    <View style={PAGE}>
+      <Pressable
+        onPress={props.logout}
+        style={{
+          backgroundColor: COLORS.accent,
+          borderRadius: SIZES.borderRadius,
+          margin: SIZES.margin,
+          justifyContent: "space-between",
+          flexDirection: 'row'
+        }}
+      >
+        <Text style={{ ...PAGEHEAD,  margin: SIZES.margin, color: COLORS.secondary }}>{date}</Text>
+        <Ionicons
+          style={{ margin: SIZES.margin, padding: SIZES.padding }}
+          name="calendar"
+          size={28}
+          // color={active ? COLORS.secondary : COLORS.accent}
+        />
+        {/*calender icon which opens a calender modal with dates that have tasks highlighted as well as selected date*/}
+      </Pressable>
+      {/* <View style={{ flex: 1, padding: 24 }}>
+      {isLoading ? <ActivityIndicator/> : (
+        <FlatList
+          data={data}
+          keyExtractor={({ id }, index) => id}
+          renderItem={({ item }) => (
+            <Text>{item.title}, {item.releaseYear}</Text>
+          )}
+        />
+      )}
+    </View> */}
+      <Text style={PAGEHEAD}>What to do today...</Text>
       <GestureHandlerRootView>
-        <DraggableFlatList
+        <FlatList
           data={list}
-          renderItem={renderItem}
-          keyExtractor={(item) => `draggable-item-${item.key}`}
-          onDragEnd={(d) => setList(d.data)}
+          renderItem={({ item, index }) => (
+            <Card task={item} index={index} {...manageTask} />
+          )}
+          keyExtractor={(item) => item.key}
         />
       </GestureHandlerRootView>
       <ControlButton addTask={addTask} />

@@ -1,12 +1,14 @@
 import { StyleSheet, View } from "react-native";
 import AppLoading from "expo-app-loading";
 import { useFonts } from "expo-font";
-import { HomePage, TestPage } from "./src/screens"
+import { HomePage, AuthPage } from "./src/screens"
+import { useEffect, useState } from "react";
 
 export default function App() {
 
   // console.log("Screen Dimensions", Dimensions.get('window'))
   // console.log('statusBarHeight: ', StatBar.currentHeight);
+  const [auth, setAuth] = useState(false)
 
   let [fontsLoaded] = useFonts({
     "Caviar_Dreams_Bold": require("./assets/fonts/CaviarDreams_Bold.ttf"),
@@ -16,10 +18,15 @@ export default function App() {
   if (!fontsLoaded) {
     return <AppLoading />;
   } else {
-    return (  
-      // <TestPage />
-      <HomePage />
-    );
+    if(auth) {
+      return (  
+        <HomePage logout={()=>setAuth(false)} />
+        );
+      } else {
+        return (  
+          <AuthPage login={()=>setAuth(true)}/>
+          );
+    }
   }
 }
 

@@ -22,7 +22,6 @@ export default function ControlButton(props) {
     setValue("");
   }
 
-  
   if (!toggle) {
     return (
       <View style={styles.boxWrapper}>
@@ -33,34 +32,39 @@ export default function ControlButton(props) {
     );
   } else {
     return (
-      <View style={styles.textBoxWrapper}>
-        <TextInput
-          style={styles.textInput}
-          placeholder="Add New Task"
-          placeholderTextColor={COLORS.secondary}
-          onChangeText={(text) => setValue(text)}
-          value={value}
-        />
-        <TouchableOpacity style={styles.button} onPress={() => value==="" ? setToggle(false) : newTask()}>
-          <Text style={{ ...FONTS.h1_bold }}>+</Text>
-        </TouchableOpacity>
-      </View>
+      // <View style={{}}>
+        <View style={styles.textBoxWrapper}>
+          <TextInput
+            style={styles.textInput}
+            placeholder="Add New Task"
+            placeholderTextColor={COLORS.secondary}
+            onChangeText={(text) => setValue(text)}
+            value={value}
+          />
+          <TouchableOpacity
+            style={styles.button}
+            onPress={() => (value === "" ? setToggle(false) : newTask())}
+          >
+            <Text style={{ ...FONTS.h1_bold }}>+</Text>
+          </TouchableOpacity>
+        </View>
+      // </View>
     );
   }
 }
 
 const styles = StyleSheet.create({
-    
   textBoxWrapper: {
-    width: "111%", //The width does not register screen width at 100%
+    width: "110%", //The width does not register screen width at 100%
     position: "absolute",
     bottom: 0,
     right: 0,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    padding: SIZES.padding,
-    backgroundColor: COLORS.secondary,
+    padding: "6%",
+    // margin: SIZES.margin,
+    backgroundColor: COLORS.primary,
   },
   boxWrapper: {
     width: "111%", //The width does not register screen width at 100%
@@ -77,11 +81,11 @@ const styles = StyleSheet.create({
     ...SHADOW,
     ...FONTS.p_regular,
     borderRadius: SIZES.textBoxRadius,
-    backgroundColor: COLORS.primary,
+    backgroundColor: COLORS.accent,
     height: 44,
     width: "80%",
-    color: COLORS.accent,
-    marginVertical: SIZES.margin,
+    color: COLORS.secondary,
+    // marginVertical: SIZES.margin,
     paddingHorizontal: 20,
   },
   button: {
@@ -92,6 +96,6 @@ const styles = StyleSheet.create({
     height: 44,
     width: 44,
     borderRadius: SIZES.textBoxRadius,
-    marginVertical: SIZES.margin,
+    // marginVertical: SIZES.margin,
   },
 });

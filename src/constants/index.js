@@ -1,15 +1,17 @@
+import { StatusBar, Platform } from "react-native";
+
 const COLORS = {
-  primary: "#00A6FB", //Blue Jeans
+  primary: "#00A6FB", //Blue Jeans rgb(0, 166, 251)
   secondary: "#363635", //Jet
   accent: "#F6F0ED", //Isabelline
-  red: "#FF0000",
+  red: "#A53F2B", //Chinese Red
   orange: "#FF8200",
   yellow: "#D5A021", //GoldenRod
-  green: "#3E8914", //India Green
+  green: "rgb(127,184,0)", //"#7FB800", //Apple Green     India Green rgb(62, 137, 20)
 };
 
 const SIZES = {
-  padding: "5%",
+  padding: "4%",
   margin: "2%",
   borderRadius: 15,
   textBoxRadius: 25,
@@ -31,4 +33,17 @@ const SHADOW = {
   shadowRadius: 12,
 };
 
-export { COLORS, SIZES, FONTS, SHADOW };
+const PAGE = {
+  paddingTop: Platform.OS === "ios" ? 40 : StatusBar.currentHeight + 10,
+  flex: 1,
+  backgroundColor: COLORS.primary,
+  padding: SIZES.padding,
+};
+
+const PAGEHEAD = {
+  ...FONTS.h1_bold,
+  color: COLORS.accent,
+  padding: SIZES.padding,
+};
+
+export { COLORS, SIZES, FONTS, SHADOW, PAGE, PAGEHEAD };
