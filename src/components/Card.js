@@ -9,38 +9,30 @@ import {
   Dimensions,
 } from "react-native";
 import { COLORS, SIZES, FONTS, SHADOW } from "../constants";
-import { Ionicons, MaterialIcons } from "@expo/vector-icons";
-
+import {
+  MaterialCommunityIcons,
+  MaterialIcons,
+  Ionicons,
+} from "@expo/vector-icons";
+// import { Notify } from "./index";
 import { SwipeRow } from "react-native-swipe-list-view";
 
 export default function Card(props) {
   const [value, setValue] = useState(props.task.taskName);
-  const [edit, setEdit] = useState(false);
   const [active, setActive] = useState(false);
   const [backColor, setColor] = useState({
     backgroundColor: "rgb(0, 166, 251)",
   });
   const [height, setHeight] = useState(0);
-  const swipeDist = Dimensions.get("window").width / 2.5;
+  const [notify, setNotify] = useState(false);
+  const swipeDist = Dimensions.get("window").width / 4;
   let backCount = 0;
 
   const swipeEnd = (key, data) => {
     if (data.translateX < -swipeDist) props.deleteTask(props.task.id);
     else if (data.translateX > swipeDist) props.setCompleted(props.task.id);
-    // setActive(false);
   };
 
-  const swipeBegin = (key, data) => {
-    // setActive(true);
-  };
-
-  // get colors rgba
-  // let green = COLORS.green.substring(4).slice(0, -1).split(",")
-  // let red = COLORS.red.substring(4).slice(0, -1).split(",")
-  // console.log(green,red)
-
-  //rgb(0, 166, 251) blue
-  //rgb(246,240,237) white to rgb(246,81,29)red or green
   function onSwipeValueChange(swipeData) {
     const { value } = swipeData;
     if (Math.abs(value) > swipeDist && active === false) setActive(true);
@@ -49,96 +41,103 @@ export default function Card(props) {
       value > 0 ? COLORS.green : value < 0 ? COLORS.red : "rgb(0, 166, 251)";
     if (backColor.backgroundColor !== coolers)
       setColor({ backgroundColor: coolers });
-    // let r =
-    //   value < 0
-    //     ? Math.round(
-    //         Math.min(value / (-swipeDist), 1) * 255
-    //       )
-    //     : 0;
-    // let g =
-    //   value < 0
-    //     ? 166 +
-    //       Math.round(
-    //         Math.max(value / (swipeDist), -1) * 166
-    //       )
-    //     : 166 +
-    //       Math.round(
-    //         Math.min(value / (swipeDist), 1) * 89
-    //       );
-    // let b =
-    //   251 -
-    //   Math.round(
-    //     Math.min(Math.abs(value) / (swipeDist), 1) *
-    //       251
-    //   );
-    // let a = Math.min(Math.abs(value / (swipeDist)), 1);
-    // if (backColor.backgroundColor !== `rgb(${r},${g},${b})`) {
-    //   setColor({ backgroundColor: `rgb(${r},${g},${b})` });
-    // }
   }
 
   function NotifyIcon() {
-    if (props.task.notify) {
+    if (props.edit) {
       return (
-        <Ionicons
-          style={{ marginRight: "3%" }}
-          name="alarm"
-          size={28}
-          color={active ? COLORS.secondary : COLORS.accent}
-        />
+        <>
+          <MaterialCommunityIcons
+            style={{ marginRight: "3%" }}
+            name="calendar-clock"
+            size={28}
+            color={props.task.notify ? COLORS.accent : COLORS.secondary}
+          />
+          {/* <MaterialCommunityIcons
+            style={{ marginRight: "3%" }}
+            name="calendar-clock"
+            size={28}
+            color={props.task.notify ? COLORS.accent : COLORS.secondary}
+          /> */}
+        </>
       );
     } else {
-      return (
-        <MaterialIcons
-          style={{ marginRight: "3%" }}
-          name="alarm-off"
-          size={28}
-          color={
-            props.task.notify
-              ? COLORS.accent
-              : edit
-              ? COLORS.secondary
-              : COLORS.primary
-          }
-        />
-      );
+      if (props.task.notify) {
+        return (
+          <Ionicons
+            style={{ width: "9%", marginRight: "3%" }}
+            name="alarm"
+            size={28}
+            color={active ? COLORS.secondary : COLORS.accent}
+          />
+        );
+      } else {
+        return (
+          <MaterialIcons
+            style={{ width: "9%", marginRight: "3%" }}
+            name="alarm-off"
+            size={28}
+            color={
+              props.task.notify
+                ? COLORS.accent
+                : props.edit
+                ? COLORS.secondary
+                : COLORS.primary
+            }
+          />
+        );
+      }
     }
   }
 
-  if (edit) {
+  const handleClose = () => setNotify(false);
+
+  if (props.edit) {
     return (
-      <View
-        style={{
-          ...styles.container,
-          ...SHADOW,
-          backgroundColor: edit
-            ? COLORS.primary
-            : active
-            ? COLORS.accent
-            : COLORS.secondary,
-          borderColor: props.task.notify ? COLORS.accent : COLORS.secondary,
-        }}
-      >
-        <TextInput
-          style={styles.textInput}
-          placeholder="Add New Task"
-          placeholderTextColor={COLORS.secondary}
-          onChangeText={(text) => setValue(text)}
-          value={value}
-        />
-        <TouchableOpacity onPress={() => props.setCompleted(props.task.id)}>
-          <NotifyIcon />
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.button}
-          onPress={() => {
-            props.renameTask(props.task.id, value);
-            setEdit(false);
+      <>
+        {/* {notify && <Notify close={handleClose} />} */}
+        <View
+          style={{
+            ...styles.container,
+            ...SHADOW,
+            backgroundColor: COLORS.accent,
+            borderColor: props.task.notify ? COLORS.accent : COLORS.secondary,
           }}
         >
-          <Text style={{ ...FONTS.h1_bold }}>+</Text>
-        </TouchableOpacity>
-      </View>
+          <TextInput
+            multiline={true}
+            placeholder="Add New Task"
+            placeholderTextColor={COLORS.secondary}
+            onChangeText={(text) => setValue(text)}
+            onContentSizeChange={(event) => {
+              setHeight(event.nativeEvent.contentSize.height);
+            }}
+            style={{
+              ...styles.textInput,
+              height: height,
+            }}
+            value={value}
+          />
+          <TouchableOpacity onPress={() => setNotify(true)}>
+            <NotifyIcon />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={{
+              ...styles.button,
+              height: height,
+            }}
+            onPress={() => {
+              if (value !== "") {
+                props.renameTask(props.task.id, value);
+                setValue(props.task.taskName);
+              }
+              props.setEdit(0);
+            }}
+          >
+            <Text style={{ ...FONTS.h1_bold, color: COLORS.accent }}>+</Text>
+          </TouchableOpacity>
+        </View>
+      </>
     );
   } else {
     return (
@@ -146,7 +145,6 @@ export default function Card(props) {
         onSwipeValueChange={onSwipeValueChange}
         friction={100}
         swipeGestureEnded={swipeEnd}
-        swipeGestureBegan={swipeBegin}
       >
         <View
           style={{
@@ -185,12 +183,13 @@ export default function Card(props) {
           }}
         >
           <Pressable
+            // activeOpacity={1}
             onPress={() => {
               backCount++;
               clearTimeout(backTimer);
               if (backCount === 2) {
                 backCount = 0;
-                setEdit(true);
+                props.setEdit(props.task.id);
               }
               const backTimer = setTimeout(() => {
                 if (backCount === 1) {
@@ -204,7 +203,7 @@ export default function Card(props) {
               style={{
                 ...styles.container,
                 ...SHADOW,
-                backgroundColor: edit
+                backgroundColor: props.edit
                   ? COLORS.primary
                   : active
                   ? COLORS.accent
@@ -243,34 +242,32 @@ const styles = StyleSheet.create({
     borderWidth: 5,
   },
   text: {
-    ...FONTS.h2_bold,
-    flex: 1,
+    ...FONTS.p_regular,
+    // flex: 1,
     paddingRight: 5,
     marginVertical: 5,
     marginHorizontal: SIZES.padding,
-    width: "88%",
-  },
-  textBoxWrapper: {
-    width: "111%", //The width does not register screen width at 100%
-    flexDirection: "row",
-    justifyContent: "space-between",
-    padding: SIZES.padding,
-    backgroundColor: COLORS.primary,
+    width: "80%",
+    // textAlign: "justify",
   },
   textInput: {
     ...FONTS.h2_bold,
-    backgroundColor: COLORS.primary,
-    width: "77%",
-    color: COLORS.accent,
-    marginVertical: 3,
-    paddingHorizontal: 20,
+    // backgroundColor: COLORS.accent,
+    width: "73%",
+    // flex: 1,
+    color: COLORS.secondary,
+    // paddingRight: 5,
+    paddingVertical: SIZES.margin,
+    marginLeft: SIZES.padding,
+    // textAlign: "justify",
   },
   button: {
     alignItems: "center",
+    // alignContent: "center",
     justifyContent: "center",
-    backgroundColor: COLORS.accent,
-    color: COLORS.primary,
-    paddingVertical: 3,
+    backgroundColor: COLORS.secondary,
+    // paddingVertical: 3,
     width: "12%",
+    // height: "100%"
   },
 });

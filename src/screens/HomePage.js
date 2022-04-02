@@ -1,7 +1,5 @@
-import React, { useState, useRef } from "react";
+import React, { useState } from "react";
 import {
-  Animated,
-  Dimensions,
   View,
   Text,
   StyleSheet,
@@ -10,24 +8,40 @@ import {
   Alert,
   Pressable,
   FlatList,
-  ActivityIndicator,
-} from "react-native";
-import { SwipeRow } from "react-native-swipe-list-view";
-import DraggableFlatList from "react-native-draggable-flatlist";
-import {
-  GestureHandlerRootView,
   TouchableOpacity,
-} from "react-native-gesture-handler";
-import { Card, ControlButton, Testcomp } from "../components";
+} from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { Card, ControlButton, Testcomp, Notify, Header } from "../components";
 import { COLORS, SIZES, FONTS, SHADOW, PAGE, PAGEHEAD } from "../constants";
 import { Ionicons } from "@expo/vector-icons";
+import DateTimePickerModal from "react-native-modal-datetime-picker";
+import { CALENDRIFIC } from "@env";
 
 export default function HomePage(props) {
   const [list, setList] = useState([]);
+  const [edit, setEdit] = useState(false);
+  const [date, setDate] = useState(new Date());
 
-  const date = new Date().toDateString();
-  const name = " James";
+  const [calendar, setCalendar] = useState(false);
+  const showCalender = () => {
+    setCalendar(true);
+  };
 
+  const hideCalendar = () => {
+    setCalendar(false);
+  };
+
+  const handleConfirm = (date) => {
+    setDate(date);
+    setCalendar(false);
+  };
+
+  // console.log("key",CALENDRIFIC)
+  // const response = fetch(
+  //   `https://calendarific.com/api/v2/holidays?&api_key=${process.env.calendrific}&country=IT&year=2022`
+  // )
+  //   .then((response) => response.json())
+  //   .then((data) => console.log(data));
   // const [isLoading, setLoading] = useState(true);
   // const [data, setData] = useState([]);
 
@@ -46,8 +60,6 @@ export default function HomePage(props) {
   //   }
   // };
 
-  // if (date!==new Date().toDateString()) getHoliday();
-
   function addTask(taskName) {
     let duplicate = list.filter((task) => task.taskName === taskName);
     if (duplicate.length === 0) {
@@ -58,7 +70,7 @@ export default function HomePage(props) {
           key: `item-${id}`,
           taskName: taskName,
           notify: false,
-          datetime: new Date(),
+          datetime: date,
           completed: false,
         };
         setList((prev) => {
@@ -73,29 +85,9 @@ export default function HomePage(props) {
   }
 
   const manageTask = {
-    // deactivateNotify: new Promise((res) => {
-    //   Alert.alert("Remove Reminder", "Since you have completed the task, shall I remove the reminder?", [
-    //     {
-    //       text: "Cancel",
-    //       style: "cancel",
-    //       onPress: () => res("dont")
-    //     },
-    //     {
-    //       text: "Yes",
-    //       onPress: () => {
-    //         // taskToUpdate.notify = false
-    //         res("notify")
-    //       },
-    //     },
-    //   ]);
-    // }),
     setCompleted: (id) => {
       let taskToUpdate = list.filter((todo) => todo.id === id)[0];
       taskToUpdate.completed = !taskToUpdate.completed;
-      // if(taskToUpdate.completed === true) {
-      //   console.log(await manageTask.deactivateNotify())
-      // }
-      // console.log(taskToUpdate)
       setList((prev) =>
         prev.map((item) => (item.id === id ? taskToUpdate : item))
       );
@@ -103,10 +95,12 @@ export default function HomePage(props) {
 
     renameTask: (id, value) => {
       let taskToUpdate = list.filter((todo) => todo.id === id)[0];
-      taskToUpdate.taskName = value;
-      setList((prev) =>
-        prev.map((item) => (item.id === id ? taskToUpdate : item))
-      );
+      if (taskToUpdate !== value) {
+        taskToUpdate.taskName = value;
+        setList((prev) =>
+          prev.map((item) => (item.id === id ? taskToUpdate : item))
+        );
+      }
     },
 
     notifyToggle: (id) => {
@@ -135,49 +129,79 @@ export default function HomePage(props) {
   };
 
   return (
-    <View style={PAGE}>
-      <Pressable
-        onPress={props.logout}
-        style={{
-          backgroundColor: COLORS.accent,
-          borderRadius: SIZES.borderRadius,
-          margin: SIZES.margin,
-          justifyContent: "space-between",
-          flexDirection: 'row'
-        }}
-      >
-        <Text style={{ ...PAGEHEAD,  margin: SIZES.margin, color: COLORS.secondary }}>{date}</Text>
-        <Ionicons
-          style={{ margin: SIZES.margin, padding: SIZES.padding }}
-          name="calendar"
-          size={28}
-          // color={active ? COLORS.secondary : COLORS.accent}
-        />
+    <>
+      <View style={PAGE}>
+        {calendar && (
+          <DateTimePickerModal
+            isVisible={calendar}
+            date={date}
+            mode="date"
+            onCancel={hideCalendar}
+            onConfirm={handleConfirm}
+          />
+        )}
+        <Pressable
+          onPress={props.logout}
+          style={{
+            backgroundColor: COLORS.accent,
+            borderRadius: SIZES.borderRadius,
+            margin: SIZES.margin,
+            // marginTop: "20%",
+            alignItems: "center",
+            justifyContent: "space-between",
+            flexDirection: "row",
+          }}
+        >
+          <Text
+            style={{
+              ...PAGEHEAD,
+              margin: SIZES.margin,
+              color: COLORS.secondary,
+            }}
+          >
+            {date.toDateString()}
+          </Text>
+          <TouchableOpacity
+            style={{ alignItems: "center" }}
+            onPress={showCalender}
+          >
+            <Ionicons
+              style={{ margin: SIZES.margin, padding: SIZES.padding }}
+              name="calendar"
+              size={28}
+            />
+          </TouchableOpacity>
+        </Pressable>
         {/*calender icon which opens a calender modal with dates that have tasks highlighted as well as selected date*/}
-      </Pressable>
-      {/* <View style={{ flex: 1, padding: 24 }}>
-      {isLoading ? <ActivityIndicator/> : (
-        <FlatList
-          data={data}
-          keyExtractor={({ id }, index) => id}
-          renderItem={({ item }) => (
-            <Text>{item.title}, {item.releaseYear}</Text>
-          )}
-        />
-      )}
-    </View> */}
-      <Text style={PAGEHEAD}>What to do today...</Text>
-      <GestureHandlerRootView>
-        <FlatList
-          data={list}
-          renderItem={({ item, index }) => (
-            <Card task={item} index={index} {...manageTask} />
-          )}
-          keyExtractor={(item) => item.key}
-        />
-      </GestureHandlerRootView>
+        {date.toDateString() === new Date().toDateString() && (
+          <Text style={PAGEHEAD}>What to do today</Text>
+        )}
+        {date.toDateString() !== new Date().toDateString() && (
+          <Text style={PAGEHEAD}>
+            What to do on {date.toDateString().substring(4, 10)}
+          </Text>
+        )}
+        <GestureHandlerRootView style={{ flex: 1 }}>
+          <FlatList
+            data={list.filter(
+              (task) => task.datetime.toDateString() === date.toDateString()
+            )}
+            renderItem={({ item, index }) => (
+              <Card
+                task={item}
+                index={index}
+                edit={edit === item.id}
+                setEdit={setEdit}
+                {...manageTask}
+              />
+            )}
+            keyExtractor={(item) => item.key}
+          />
+        </GestureHandlerRootView>
+      </View>
+      {/* {reminder && <Reminder close={() => setReminder(false)} />} */}
       <ControlButton addTask={addTask} />
-    </View>
+    </>
   );
 }
 

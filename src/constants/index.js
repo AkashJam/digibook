@@ -1,4 +1,4 @@
-import { StatusBar, Platform } from "react-native";
+import { StatusBar, Platform,Dimensions } from "react-native";
 
 const COLORS = {
   primary: "#00A6FB", //Blue Jeans rgb(0, 166, 251)
@@ -17,7 +17,7 @@ const SIZES = {
   textBoxRadius: 25,
   h1: 24,
   h2: 20,
-  p: 16,
+  p: 18,
 };
 
 const FONTS = {
@@ -35,9 +35,9 @@ const SHADOW = {
 
 const PAGE = {
   paddingTop: Platform.OS === "ios" ? 40 : StatusBar.currentHeight + 10,
-  flex: 1,
+  height: "100%",
   backgroundColor: COLORS.primary,
-  padding: SIZES.padding,
+  paddingHorizontal: SIZES.padding,
 };
 
 const PAGEHEAD = {
