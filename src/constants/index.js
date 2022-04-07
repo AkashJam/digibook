@@ -1,7 +1,7 @@
 import { StatusBar, Platform,Dimensions } from "react-native";
 
 const COLORS = {
-  primary: "#00A6FB", //Blue Jeans rgb(0, 166, 251)
+  primary: "rgb(0, 166, 251)", //Blue Jeans rgb(0, 166, 251)
   secondary: "#363635", //Jet
   accent: "#F6F0ED", //Isabelline
   red: "#A53F2B", //Chinese Red

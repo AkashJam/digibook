@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
   View,
   Text,
@@ -19,7 +19,8 @@ import { CALENDRIFIC } from "@env";
 
 export default function HomePage(props) {
   const [list, setList] = useState([]);
-  const [edit, setEdit] = useState(false);
+  const [edit, setEdit] = useState(0);
+
   const [date, setDate] = useState(new Date());
 
   const [calendar, setCalendar] = useState(false);
@@ -95,8 +96,18 @@ export default function HomePage(props) {
 
     renameTask: (id, value) => {
       let taskToUpdate = list.filter((todo) => todo.id === id)[0];
-      if (taskToUpdate !== value) {
+      if (taskToUpdate.taskName !== value) {
         taskToUpdate.taskName = value;
+        setList((prev) =>
+          prev.map((item) => (item.id === id ? taskToUpdate : item))
+        );
+      }
+    },
+
+    changeDate: (id, value) => {
+      let taskToUpdate = list.filter((todo) => todo.id === id)[0];
+      if (taskToUpdate.date !== value) {
+        taskToUpdate.date = value;
         setList((prev) =>
           prev.map((item) => (item.id === id ? taskToUpdate : item))
         );
@@ -140,18 +151,7 @@ export default function HomePage(props) {
             onConfirm={handleConfirm}
           />
         )}
-        <Pressable
-          onPress={props.logout}
-          style={{
-            backgroundColor: COLORS.accent,
-            borderRadius: SIZES.borderRadius,
-            margin: SIZES.margin,
-            // marginTop: "20%",
-            alignItems: "center",
-            justifyContent: "space-between",
-            flexDirection: "row",
-          }}
-        >
+        <Pressable onPress={props.logout} style={styles.date}>
           <Text
             style={{
               ...PAGEHEAD,
@@ -199,8 +199,14 @@ export default function HomePage(props) {
           />
         </GestureHandlerRootView>
       </View>
-      {/* {reminder && <Reminder close={() => setReminder(false)} />} */}
       <ControlButton addTask={addTask} />
+      {edit !== 0 && (
+        <Notify
+          task={list.filter((item) => item.id === edit)[0]}
+          close={() => setEdit(0)}
+          {...manageTask}
+        />
+      )}
     </>
   );
 }
@@ -216,5 +222,14 @@ const styles = StyleSheet.create({
     ...FONTS.h1_bold,
     color: COLORS.accent,
     padding: SIZES.padding,
+  },
+  date: {
+    backgroundColor: COLORS.accent,
+    borderRadius: SIZES.borderRadius,
+    margin: SIZES.margin,
+    // marginTop: "20%",
+    alignItems: "center",
+    justifyContent: "space-between",
+    flexDirection: "row",
   },
 });
