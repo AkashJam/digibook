@@ -1,4 +1,4 @@
-import { StatusBar, Platform,Dimensions } from "react-native";
+import { StatusBar, Platform, Dimensions } from "react-native";
 
 const COLORS = {
   primary: "rgb(0, 166, 251)", //Blue Jeans rgb(0, 166, 251)

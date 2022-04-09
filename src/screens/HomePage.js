@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -16,8 +16,11 @@ import { COLORS, SIZES, FONTS, SHADOW, PAGE, PAGEHEAD } from "../constants";
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import { CALENDRIFIC } from "@env";
+import { globalvars } from "../globalvars";
 
-export default function HomePage(props) {
+export default function HomePage({ navigation }) {
+
+  //list.filter(task => task.datetime.toDateString() === date.toDateString())
   const [list, setList] = useState([]);
   const [edit, setEdit] = useState(0);
 
@@ -77,6 +80,7 @@ export default function HomePage(props) {
         setList((prev) => {
           return [newTask, ...prev];
         });
+        globalvars.toast("Task added.", 5000);
       } else {
         alert("Please name the task");
       }
@@ -92,6 +96,7 @@ export default function HomePage(props) {
       setList((prev) =>
         prev.map((item) => (item.id === id ? taskToUpdate : item))
       );
+      globalvars.toast("Task completed.", 5000);
     },
 
     renameTask: (id, value) => {
@@ -102,6 +107,7 @@ export default function HomePage(props) {
           prev.map((item) => (item.id === id ? taskToUpdate : item))
         );
       }
+      globalvars.toast("Task renamed.", 5000);
     },
 
     changeDate: (id, value) => {
@@ -112,14 +118,17 @@ export default function HomePage(props) {
           prev.map((item) => (item.id === id ? taskToUpdate : item))
         );
       }
+      globalvars.toast("Date changed.", 5000);
     },
 
     notifyToggle: (id) => {
       let taskToUpdate = list.filter((todo) => todo.id === id)[0];
       taskToUpdate.notify = !taskToUpdate.notify;
       setList((prev) =>
-        prev.map((item) => (item.id === id ? taskToUpdate : item))
+      prev.map((item) => (item.id === id ? taskToUpdate : item))
       );
+      if (taskToUpdate.notify) globalvars.toast("Alarm On.", 5000);
+      else globalvars.toast("Alarm Off.", 5000);
     },
 
     deleteTask: (id) => {
@@ -133,6 +142,7 @@ export default function HomePage(props) {
           onPress: () => {
             let updatedTasks = list.filter((todo) => todo.id !== id);
             setList(updatedTasks);
+            globalvars.toast("Task deleted.", 5000);
           },
         },
       ]);
@@ -142,16 +152,14 @@ export default function HomePage(props) {
   return (
     <>
       <View style={PAGE}>
-        {calendar && (
-          <DateTimePickerModal
-            isVisible={calendar}
-            date={date}
-            mode="date"
-            onCancel={hideCalendar}
-            onConfirm={handleConfirm}
-          />
-        )}
-        <Pressable onPress={props.logout} style={styles.date}>
+        <DateTimePickerModal
+          isVisible={calendar}
+          date={date}
+          mode="date"
+          onCancel={hideCalendar}
+          onConfirm={handleConfirm}
+        />
+        <Pressable onPress={() => navigation.navigate('Auth')} style={styles.date}>
           <Text
             style={{
               ...PAGEHEAD,

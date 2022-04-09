@@ -1,16 +1,13 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
   StyleSheet,
-  TextInput,
-  TouchableOpacity,
   Pressable,
   Dimensions,
 } from "react-native";
 import { COLORS, SIZES, FONTS, SHADOW } from "../constants";
 import {
-  MaterialCommunityIcons,
   MaterialIcons,
   Ionicons,
 } from "@expo/vector-icons";

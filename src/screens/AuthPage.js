@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -6,26 +6,25 @@ import {
   TouchableOpacity,
   TextInput,
 } from "react-native";
-import { COLORS, SIZES, FONTS, SHADOW, PAGE, PAGEHEAD } from "../constants";
+import { COLORS, SIZES, FONTS, SHADOW, PAGE, PAGEHEAD, TOAST } from "../constants";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { globalvars } from "../globalvars";
 
-export default function AuthPage(props) {
+export default function AuthPage({ navigation }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [auth, setAuth] = useState(false);
+
+  const [canRegister, setCanRegister] = useState(false);
+  const [canLogin, setCanLogin] = useState(false);
+
   const [userColor, setUserColor] = useState(COLORS.primary);
   const [pwdColor, setPwdColor] = useState(COLORS.primary);
-
-  useEffect(() => {
-    clearTimeout(backTimer);
-    const backTimer = setTimeout(() => {
-      userValidation();
-    }, 1000);
-  }, [username, password]);
 
   const userValidation = () => {
     let validUser,
       validPwd = false;
 
+    //Border validation
     if (username !== "") {
       if (username.length < 3 || username.length > 20) setUserColor(COLORS.red);
       else {
@@ -35,30 +34,74 @@ export default function AuthPage(props) {
     } else setUserColor(COLORS.primary);
 
     if (password !== "") {
-      if (password.length < 8 || password.length > 20) {
-        setPwdColor(COLORS.red);
-        validPwd = false;
-      } else {
+      if (password.length < 8 || password.length > 20) setPwdColor(COLORS.red);
+      else {
         setPwdColor(COLORS.green);
         validPwd = true;
       }
+    } else setPwdColor(COLORS.primary);
+
+    //Button validation
+    if (validUser && validPwd) {
+      setCanLogin(true);
+      setCanRegister(true);
     } else {
-      setPwdColor(COLORS.primary);
-      validPwd = false;
+      setCanLogin(false);
+      setCanRegister(false);
     }
-    if (validUser && validPwd) setAuth(true);
   };
 
-  const login = () => {
-    username.length < 3 ||
-    username.length > 20 ||
-    password.length < 8 ||
-    password.length > 20
-      ? setAuth(false)
-      : setAuth(true);
-    if (auth) props.login();
-    //else console.log("oops I did it again"); Alert user of invalid username or password
+  const login = async () => {
+    const check = setTimeout(() => {
+      // Add notification that user does not exist and you can create a user with that name
+      globalvars.toast("User does not exist.", 5000);
+      setCanLogin(false);
+    }, 5000); //Timeout if no reseponse for 5 sec
+
+    //Need to check with api if user exists and login else
+    const user = await AsyncStorage.getItem(username); //Check local storage for user
+
+    if (user !== null) {
+      clearTimeout(check);
+      //if wrong password
+      if (password !== user) {
+        setCanLogin(false);
+        setCanRegister(false);
+        setUserColor(COLORS.red);
+        setPwdColor(COLORS.red);
+        globalvars.toast("Wrong username or password.", 5000);
+      } else navigation.navigate('Home');
+    }
   };
+
+  const register = async () => {
+    const check = setTimeout(async () => {
+      console.log("registering");
+      try {
+        console.log("saving");
+        await AsyncStorage.setItem(username, password);
+        setCanRegister(false);
+        setCanLogin(true);
+        console.log("saved");
+      } catch (e) {
+        console.log("saving error");
+      }
+    }, 5000);
+
+    //Need to check with api if user exists and login else
+    const user = await AsyncStorage.getItem(username); //Check local storage for user
+    //if user exists
+    if (user !== null) {
+      clearTimeout(check);
+      //Notification that username exists
+      globalvars.toast("Username already exists.", 5000);
+      setCanRegister(false);
+    }
+  };
+
+  useEffect(() => {
+    userValidation(); //Set highlight of border and buttons
+  }, [username, password]);
 
   return (
     <View
@@ -69,7 +112,7 @@ export default function AuthPage(props) {
         alignItems: "center",
       }}
     >
-      <Text style={PAGEHEAD}>Digibook</Text>
+      <Text style={PAGEHEAD}>Digital Notebook</Text>
       <TextInput
         style={{ ...styles.textInput, borderColor: userColor }}
         placeholder="Username"
@@ -85,31 +128,34 @@ export default function AuthPage(props) {
         value={password}
       />
       <TouchableOpacity
+        disabled={!canLogin}
         style={{
           ...styles.buttons,
-          backgroundColor: auth ? COLORS.primary : COLORS.accent,
+          backgroundColor: canLogin ? COLORS.primary : COLORS.accent,
         }}
         onPress={login}
       >
         <Text
           style={{
             ...FONTS.p_regular,
-            color: auth ? COLORS.accent : COLORS.secondary,
+            color: canLogin ? COLORS.accent : COLORS.secondary,
           }}
         >
           LOGIN
         </Text>
       </TouchableOpacity>
       <TouchableOpacity
+        disabled={!canRegister}
         style={{
           ...styles.buttons,
-          backgroundColor: auth ? COLORS.primary : COLORS.accent,
+          backgroundColor: canRegister ? COLORS.primary : COLORS.accent,
         }}
+        onPress={register}
       >
         <Text
           style={{
             ...FONTS.p_regular,
-            color: auth ? COLORS.accent : COLORS.secondary,
+            color: canRegister ? COLORS.accent : COLORS.secondary,
           }}
         >
           REGISTER
