@@ -34,7 +34,12 @@ const SHADOW = {
 };
 
 const PAGE = {
-  paddingTop: Platform.OS === "ios" ? 40 : StatusBar.currentHeight + 10,
+  paddingTop:
+    // Platform.OS === "ios"
+    //   ? 40
+    //   : StatusBar.currentHeight > 30
+    //   ? StatusBar.currentHeight + 10
+    40,
   height: "100%",
   backgroundColor: COLORS.primary,
   paddingHorizontal: SIZES.padding,

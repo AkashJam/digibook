@@ -61,7 +61,7 @@ export default function ControlButton(props) {
 
 const styles = StyleSheet.create({
   textBoxWrapper: {
-    width: Dimensions.get("window").width, //The width does not register screen width at 100%
+    width: Dimensions.get("window").width,
     position: "absolute",
     bottom: 0,
     // right: `-${SIZES.margin}`,
@@ -75,7 +75,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.5)",
   },
   boxWrapper: {
-    width: Dimensions.get("window").width, //The width does not register screen width at 100%
+    width: Dimensions.get("window").width,
     position: "absolute",
     bottom: 0,
     right: `-${SIZES.margin}`,

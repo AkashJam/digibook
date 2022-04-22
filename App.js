@@ -2,6 +2,7 @@ import AppLoading from "expo-app-loading";
 import { useFonts } from "expo-font";
 import UI from "./src/screens";
 import { RootSiblingParent } from "react-native-root-siblings";
+// import {StatusBar} from 'react-native';
 
 export default function App() {
   // console.log("Screen Dimensions", Dimensions.get('window'))
@@ -14,10 +15,12 @@ export default function App() {
 
   if (!fontsLoaded) return <AppLoading />;
   else
-    return (
-      //toast wrapper
+  return (
+    <>
+      {/* <StatusBar hidden /> */}
       <RootSiblingParent>
         <UI />
       </RootSiblingParent>
+      </>
     );
-}
+  } //toast wrapper

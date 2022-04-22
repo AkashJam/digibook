@@ -1,6 +1,7 @@
 import HomePage from "./HomePage";
-import TestPage from "./TestPage";
+import { UserProvider } from "../globalvars";
 import AuthPage from "./AuthPage";
+import TestPage from "./TestPage";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
 
@@ -15,7 +16,7 @@ function StackNav() {
     >
       <Stack.Screen name="Auth" component={AuthPage} />
       <Stack.Screen name="Home" component={HomePage} />
-      {/* <Stack.Screen name="Profile" component={ProfileScreen} /> */}
+      <Stack.Screen name="Test" component={TestPage} />
       {/* <Stack.Screen name="Settings" component={SettingsScreen} /> */}
     </Stack.Navigator>
   );
@@ -23,8 +24,10 @@ function StackNav() {
 
 export default function UI() {
   return (
-    <NavigationContainer>
-      <StackNav />
-    </NavigationContainer>
+    <UserProvider>
+      <NavigationContainer>
+        <StackNav />
+      </NavigationContainer>
+    </UserProvider>
   );
 }

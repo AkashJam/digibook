@@ -5,12 +5,24 @@ import {
   StyleSheet,
   TouchableOpacity,
   TextInput,
+  Dimensions,
 } from "react-native";
-import { COLORS, SIZES, FONTS, SHADOW, PAGE, PAGEHEAD, TOAST } from "../constants";
+import {
+  COLORS,
+  SIZES,
+  FONTS,
+  SHADOW,
+  PAGE,
+  PAGEHEAD,
+  TOAST,
+} from "../constants";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { globalvars } from "../globalvars";
+import { toastr, UserContext } from "../globalvars";
+import { ActivityIndicator } from "react-native";
 
 export default function AuthPage({ navigation }) {
+  const [state, dispatch] = React.useContext(UserContext);
+
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
 
@@ -51,50 +63,66 @@ export default function AuthPage({ navigation }) {
     }
   };
 
+  const [isLoading, setLoading] = useState(false);
+
   const login = async () => {
     const check = setTimeout(() => {
       // Add notification that user does not exist and you can create a user with that name
-      globalvars.toast("User does not exist.", 5000);
+      setLoading(false);
+      toastr("User does not exist.", 5000);
       setCanLogin(false);
     }, 5000); //Timeout if no reseponse for 5 sec
-
+    setLoading(true);
     //Need to check with api if user exists and login else
     const user = await AsyncStorage.getItem(username); //Check local storage for user
 
     if (user !== null) {
       clearTimeout(check);
+      setLoading(false);
       //if wrong password
       if (password !== user) {
         setCanLogin(false);
         setCanRegister(false);
         setUserColor(COLORS.red);
         setPwdColor(COLORS.red);
-        globalvars.toast("Wrong username or password.", 5000);
-      } else navigation.navigate('Home');
+        toastr("Wrong username or password.", 5000);
+      } else {
+        let log = await AsyncStorage.getItem(`${username}_log`); //Check local storage for user;
+        let obj = {
+          username: username,
+          activities: log != null ? JSON.parse(log) : [],
+        };
+        dispatch({ type: "set_user", user: obj });
+        toastr(`Welcome ${username}`, 5000);
+        setUsername("");
+        setPassword("");
+        navigation.navigate("Home");
+      }
     }
   };
 
   const register = async () => {
     const check = setTimeout(async () => {
-      console.log("registering");
+      setLoading(false);
       try {
-        console.log("saving");
         await AsyncStorage.setItem(username, password);
+        await AsyncStorage.setItem(`${username}_log`, JSON.stringify([]));
         setCanRegister(false);
         setCanLogin(true);
-        console.log("saved");
+        toastr("You have been registered.", 5000);
       } catch (e) {
-        console.log("saving error");
+        toastr("Registration error.", 5000);
       }
     }, 5000);
-
+    setLoading(true);
     //Need to check with api if user exists and login else
     const user = await AsyncStorage.getItem(username); //Check local storage for user
     //if user exists
     if (user !== null) {
       clearTimeout(check);
       //Notification that username exists
-      globalvars.toast("Username already exists.", 5000);
+      setLoading(false);
+      toastr("Username already exists.", 5000);
       setCanRegister(false);
     }
   };
@@ -104,14 +132,12 @@ export default function AuthPage({ navigation }) {
   }, [username, password]);
 
   return (
-    <View
-      style={{
-        ...PAGE,
-        backgroundColor: COLORS.secondary,
-        paddingTop: "25%",
-        alignItems: "center",
-      }}
-    >
+    <View style={styles.page}>
+      {isLoading && (
+        <View style={styles.activity}>
+          <ActivityIndicator size={100} color={COLORS.primary} />
+        </View>
+      )}
       <Text style={PAGEHEAD}>Digital Notebook</Text>
       <TextInput
         style={{ ...styles.textInput, borderColor: userColor }}
@@ -166,6 +192,13 @@ export default function AuthPage({ navigation }) {
 }
 
 const styles = new StyleSheet.create({
+  page: {
+    height: "100%",
+    backgroundColor: COLORS.secondary,
+    paddingTop: "25%",
+    alignItems: "center",
+    paddingHorizontal: SIZES.padding,
+  },
   textInput: {
     ...FONTS.h2_bold,
     backgroundColor: COLORS.accent,
@@ -186,5 +219,15 @@ const styles = new StyleSheet.create({
     padding: SIZES.padding,
     alignItems: "center",
     borderRadius: SIZES.textBoxRadius,
+  },
+  activity: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    height: Dimensions.get("window").height / 1.5,
+    width: Dimensions.get("window").width,
+    alignItems: "center",
+    justifyContent: "center",
+    elevation: 5,
   },
 });

@@ -1,24 +1,28 @@
 import React, { useState } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  Pressable,
-  Dimensions,
-} from "react-native";
+import { View, Text, StyleSheet, Pressable, Dimensions } from "react-native";
 import { COLORS, SIZES, FONTS, SHADOW } from "../constants";
-import {
-  MaterialIcons,
-  Ionicons,
-} from "@expo/vector-icons";
+import { MaterialIcons, Ionicons } from "@expo/vector-icons";
 import { SwipeRow } from "react-native-swipe-list-view";
 
 export default function Card(props) {
-  const [active, setActive] = useState(false);
-  const [backColor, setColor] = useState(COLORS.primary);
   const [height, setHeight] = useState(0);
   const swipeDist = Dimensions.get("window").width / 4;
+  const [backColor, setColor] = useState(COLORS.primary);
+  const [active, setActive] = useState(false);
+
   let backCount = 0;
+  const cardPress = () => {
+    backCount++;
+    clearTimeout(backTimer);
+    if (backCount === 2) {
+      backCount = 0;
+      props.setEdit(props.task.id);
+    }
+    const backTimer = setTimeout(() => {
+      if (backCount === 1) props.notifyToggle(props.task.id);
+      backCount = 0;
+    }, 500);
+  };
 
   const swipeEnd = (key, data) => {
     if (data.translateX < -swipeDist) props.deleteTask(props.task.id);
@@ -30,9 +34,14 @@ export default function Card(props) {
     if (Math.abs(value) > swipeDist && active === false) setActive(true);
     else if (Math.abs(value) < swipeDist && active === true) setActive(false);
     let coolers =
-      value > 0 ? COLORS.green : value < 0 ? COLORS.red : COLORS.primary;
-    if (backColor !== coolers)
-      setColor(coolers);
+      value > 0
+        ? props.task.completed
+          ? COLORS.orange
+          : COLORS.green
+        : value < 0
+        ? COLORS.red
+        : COLORS.primary;
+    if (backColor !== coolers) setColor(coolers);
   }
 
   function NotifyIcon() {
@@ -64,51 +73,19 @@ export default function Card(props) {
       <View
         style={{
           ...styles.container,
-          backgroundColor: backColor,
           height: height,
+          backgroundColor: backColor,
           borderColor: backColor,
         }}
       >
-        {backColor === COLORS.green && (
-          <Text
-            style={{
-              ...FONTS.p_regular,
-              color: COLORS.secondary,
-              paddingHorizontal: SIZES.padding,
-            }}
-          >
-            Completed
+        {(backColor === COLORS.green || backColor === COLORS.orange) && (
+          <Text style={styles.left}>
+            {props.task.completed ? "Incomplete" : "Completed"}
           </Text>
         )}
-        {backColor === COLORS.red && (
-          <Text
-            style={{
-              ...FONTS.p_regular,
-              marginLeft: "auto",
-              color: COLORS.accent,
-              paddingHorizontal: SIZES.padding,
-            }}
-          >
-            Delete
-          </Text>
-        )}
+        {backColor === COLORS.red && <Text style={styles.right}>Delete</Text>}
       </View>
-      <Pressable
-        onPress={() => {
-          backCount++;
-          clearTimeout(backTimer);
-          if (backCount === 2) {
-            backCount = 0;
-            props.setEdit(props.task.id);
-          }
-          const backTimer = setTimeout(() => {
-            if (backCount === 1) {
-              props.notifyToggle(props.task.id);
-            }
-            backCount = 0;
-          }, 500);
-        }}
-      >
+      <Pressable onPress={cardPress}>
         <View
           style={{
             ...styles.container,
@@ -154,5 +131,16 @@ const styles = StyleSheet.create({
     marginHorizontal: SIZES.padding,
     width: "80%",
     textAlign: "justify",
+  },
+  left: {
+    ...FONTS.p_regular,
+    color: COLORS.secondary,
+    paddingHorizontal: SIZES.padding,
+  },
+  right: {
+    ...FONTS.p_regular,
+    marginLeft: "auto",
+    color: COLORS.accent,
+    paddingHorizontal: SIZES.padding,
   },
 });
