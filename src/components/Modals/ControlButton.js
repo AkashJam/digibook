@@ -3,12 +3,8 @@ import {
   View,
   Text,
   StyleSheet,
-  StatusBar,
-  Platform,
   TextInput,
   TouchableOpacity,
-  Alert,
-  Pressable,
   Dimensions,
 } from "react-native";
 import { COLORS, SIZES, FONTS, SHADOW } from "../../constants";
@@ -34,7 +30,6 @@ export default function ControlButton(props) {
     );
   } else {
     return (
-      // <View style={{}}>
       <View style={styles.textBoxWrapper}>
         <TextInput
           multiline={true}
@@ -54,7 +49,6 @@ export default function ControlButton(props) {
           <Text style={{ ...FONTS.h1_bold }}>+</Text>
         </TouchableOpacity>
       </View>
-      // </View>
     );
   }
 }
@@ -64,14 +58,12 @@ const styles = StyleSheet.create({
     width: Dimensions.get("window").width,
     position: "absolute",
     bottom: 0,
-    // right: `-${SIZES.margin}`,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: SIZES.padding,
     paddingTop: SIZES.padding,
     paddingBottom: "5%",
-    // margin: SIZES.margin,
     backgroundColor: "rgba(0,0,0,0.5)",
   },
   boxWrapper: {
@@ -84,7 +76,6 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
     padding: SIZES.padding,
     margin: SIZES.margin,
-    // backgroundColor: COLORS.secondary,
   },
   textInput: {
     ...SHADOW,
@@ -94,7 +85,6 @@ const styles = StyleSheet.create({
     height: 44,
     width: "80%",
     color: COLORS.secondary,
-    // marginVertical: SIZES.margin,
     paddingHorizontal: 20,
   },
   button: {
@@ -106,6 +96,5 @@ const styles = StyleSheet.create({
     height: 44,
     width: 44,
     borderRadius: SIZES.textBoxRadius,
-    // marginVertical: SIZES.margin,
   },
 });

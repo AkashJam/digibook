@@ -11,24 +11,19 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { Card, ControlButton, Testcomp, Notify, Header } from "../components";
+import { Card, ControlButton, Testcomp, Header } from "../components";
 import { COLORS, SIZES, FONTS, SHADOW, PAGE, PAGEHEAD } from "../constants";
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import { CALENDRIFIC } from "@env";
 import { UserContext } from "../globalvars";
 
-const initialTodos = [];
-
 export default function HomePage({ navigation }) {
   const [state, dispatch] = React.useContext(UserContext);
-
   const [list, setList] = useState(state.activities);
-  const [edit, setEdit] = useState(0);
-
   const [date, setDate] = useState(new Date());
-
   const [calendar, setCalendar] = useState(false);
+
   const showCalender = () => {
     setCalendar(true);
   };
@@ -58,18 +53,27 @@ export default function HomePage({ navigation }) {
   //     .then((data) => setHoliday(data.response.holidays[0].description));
   // }
 
+  // const response = fetch(
+  //   `http://www.overpass-api.de/api/interpreter?data=[out:json];node
+  //   ["shop"="supermarket"]
+  //   (41.884387437208,12.480683326721,41.898699521063,12.503321170807);
+  //   out;`
+  // )
+  //   .then((response) => response.json())
+  //   .then((data) => console.log(data.elements));
+
   function addTask(taskName) {
     dispatch({
       type: "add_task",
-      taskName: taskName,
-      datetime: date.toDateString(),
+      name: taskName,
+      datetime: date.toString(),
     });
   }
 
   const manageTask = {
     setCompleted: (id) => dispatch({ type: "toggle_completion", id: id }),
     renameTask: (id, value) =>
-      dispatch({ type: "rename_task", id: id, taskName: value }),
+      dispatch({ type: "rename_task", id: id, name: value }),
     notifyToggle: (id) => dispatch({ type: "toggle_alarm", id: id }),
     changeDate: (id, value) => {
       let taskToUpdate = list.filter((todo) => todo.id === id)[0];
@@ -97,8 +101,20 @@ export default function HomePage({ navigation }) {
     },
   };
 
+  const renderItem = ({ item, index }) => {
+    return (
+      <Card
+        task={item}
+        index={index}
+        setEdit={(id) => navigation.navigate("Activity", { id })}
+        {...manageTask}
+      />
+    );
+  };
+
   return (
     <>
+      <Header screen={"Home"} />
       <View style={PAGE}>
         <DateTimePickerModal
           isVisible={calendar}
@@ -150,47 +166,109 @@ export default function HomePage({ navigation }) {
             {holiday}
           </Text> */}
         </View>
-        {/*calender icon which opens a calender modal with dates that have tasks highlighted as well as selected date*/}
-        {date.toDateString() === new Date().toDateString() && (
-          <Text style={PAGEHEAD}>What to do today</Text>
-        )}
-        {date.toDateString() !== new Date().toDateString() && (
-          <Text style={PAGEHEAD}>
-            {date < new Date() &&
-              "What you did on " + date.toDateString().substring(4, 10)}
-            {date > new Date() &&
-              "What to do on " + date.toDateString().substring(4, 10)}
-          </Text>
-        )}
         <GestureHandlerRootView style={{ flex: 1 }}>
-          <FlatList
-            data={list.filter(
-              (task) =>
-                task.active &&
-                task.datetime &&
-                task.datetime === date.toDateString()
-            )}
-            renderItem={({ item, index }) => (
-              <Card
-                task={item}
-                index={index}
-                edit={edit === item.id}
-                setEdit={setEdit}
-                {...manageTask}
+          {/*calender icon which opens a calender modal with dates that have tasks highlighted as well as selected date*/}
+          {date.toDateString() === new Date().toDateString() && (
+            <>
+              <Text style={PAGEHEAD}>What to do today</Text>
+              {list.filter(
+                (task) =>
+                  task.active &&
+                  task.datetime &&
+                  !task.completed &&
+                  new Date(task.datetime).toDateString() === date.toDateString()
+              ).length !== 0 && (
+                <FlatList
+                  data={list.filter(
+                    (task) =>
+                      task.active &&
+                      task.datetime &&
+                      !task.completed &&
+                      new Date(task.datetime).toDateString() ===
+                        date.toDateString()
+                  )}
+                  renderItem={renderItem}
+                  keyExtractor={(item) => item.key}
+                />
+              )}
+              {list.filter(
+                (task) =>
+                  task.active &&
+                  task.datetime &&
+                  !task.completed &&
+                  new Date(task.datetime).toDateString() === date.toDateString()
+              ).length === 0 && (
+                <Text style={styles.empty}>
+                  {list.filter(
+                    (task) =>
+                      task.active &&
+                      task.datetime &&
+                      task.completed &&
+                      new Date(task.datetime).toDateString() ===
+                        date.toDateString()
+                  ).length !== 0
+                    ? "Nothing else planned for today"
+                    : "Nothing planned for today"}
+                </Text>
+              )}
+              {list.filter(
+                (task) =>
+                  task.active &&
+                  task.datetime &&
+                  task.completed &&
+                  new Date(task.datetime).toDateString() === date.toDateString()
+              ).length !== 0 && (
+                <>
+                  <Text style={PAGEHEAD}>What you did today</Text>
+                  <FlatList
+                    data={list.filter(
+                      (task) =>
+                        task.active &&
+                        task.datetime &&
+                        new Date(task.datetime).toDateString() ===
+                          date.toDateString()
+                    )}
+                    renderItem={renderItem}
+                    keyExtractor={(item) => item.key}
+                  />
+                </>
+              )}
+            </>
+          )}
+          {date.toDateString() !== new Date().toDateString() && (
+            <>
+              <Text style={PAGEHEAD}>
+                {date < new Date() &&
+                  "What you did on " + date.toDateString().substring(4, 10)}
+                {date > new Date() &&
+                  "What to do on " + date.toDateString().substring(4, 10)}
+              </Text>
+              {date > new Date() &&
+                list.filter(
+                  (task) =>
+                    task.active &&
+                    task.datetime &&
+                    new Date(task.datetime).toDateString() ===
+                      date.toDateString()
+                ).length === 0 && (
+                  <Text style={styles.empty}>Nothing planned for this day</Text>
+                )}
+              <FlatList
+                data={list.filter(
+                  (task) =>
+                    task.active &&
+                    task.datetime &&
+                    new Date(task.datetime).toDateString() ===
+                      date.toDateString()
+                )}
+                renderItem={renderItem}
+                keyExtractor={(item) => item.key}
               />
-            )}
-            keyExtractor={(item) => item.key}
-          />
+            </>
+          )}
         </GestureHandlerRootView>
       </View>
       <ControlButton addTask={addTask} />
-      {edit !== 0 && (
-        <Notify
-          task={list.filter((item) => item.id === edit)[0]}
-          close={() => setEdit(0)}
-          {...manageTask}
-        />
-      )}
     </>
   );
 }
@@ -216,5 +294,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     flexDirection: "row",
+  },
+  empty: {
+    ...FONTS.h2_bold,
+    color: COLORS.secondary,
+    margin: SIZES.padding,
   },
 });

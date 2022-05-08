@@ -7,15 +7,7 @@ import {
   TextInput,
   Dimensions,
 } from "react-native";
-import {
-  COLORS,
-  SIZES,
-  FONTS,
-  SHADOW,
-  PAGE,
-  PAGEHEAD,
-  TOAST,
-} from "../constants";
+import { COLORS, SIZES, FONTS, SHADOW, PAGEHEAD } from "../constants";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { toastr, UserContext } from "../globalvars";
 import { ActivityIndicator } from "react-native";
@@ -74,23 +66,27 @@ export default function AuthPage({ navigation }) {
     }, 5000); //Timeout if no reseponse for 5 sec
     setLoading(true);
     //Need to check with api if user exists and login else
-    const user = await AsyncStorage.getItem(username); //Check local storage for user
-
+    const datainfo = await AsyncStorage.getItem(`${username}_info`);
+    let user = JSON.parse(datainfo);
     if (user !== null) {
       clearTimeout(check);
       setLoading(false);
       //if wrong password
-      if (password !== user) {
+      if (password !== user.passwordHash) {
         setCanLogin(false);
         setCanRegister(false);
         setUserColor(COLORS.red);
         setPwdColor(COLORS.red);
         toastr("Wrong username or password.", 5000);
       } else {
-        let log = await AsyncStorage.getItem(`${username}_log`); //Check local storage for user;
+        const datalog = await AsyncStorage.getItem(`${username}_log`); //Check local storage for user
+        let log = JSON.parse(datalog);
         let obj = {
           username: username,
-          activities: log != null ? JSON.parse(log) : [],
+          displayName: user.displayName,
+          collaborators: user.collaborators,
+          groups: log.groups,
+          activities: log.activities,
         };
         dispatch({ type: "set_user", user: obj });
         toastr(`Welcome ${username}`, 5000);
@@ -105,8 +101,22 @@ export default function AuthPage({ navigation }) {
     const check = setTimeout(async () => {
       setLoading(false);
       try {
-        await AsyncStorage.setItem(username, password);
-        await AsyncStorage.setItem(`${username}_log`, JSON.stringify([]));
+        await AsyncStorage.setItem(
+          `${username}_info`,
+          JSON.stringify({
+            username: username,
+            displayName: "",
+            passwordHash: password,
+            collaborators: [],
+          })
+        );
+        await AsyncStorage.setItem(
+          `${username}_log`,
+          JSON.stringify({
+            groups: [],
+            activities: [],
+          })
+        );
         setCanRegister(false);
         setCanLogin(true);
         toastr("You have been registered.", 5000);
@@ -116,7 +126,7 @@ export default function AuthPage({ navigation }) {
     }, 5000);
     setLoading(true);
     //Need to check with api if user exists and login else
-    const user = await AsyncStorage.getItem(username); //Check local storage for user
+    const user = await AsyncStorage.getItem(`${username}_info`); //Check local storage for user
     //if user exists
     if (user !== null) {
       clearTimeout(check);
@@ -147,6 +157,7 @@ export default function AuthPage({ navigation }) {
         value={username}
       />
       <TextInput
+        secureTextEntry={true}
         style={{ ...styles.textInput, borderColor: pwdColor }}
         placeholder="Password"
         placeholderTextColor={COLORS.secondary}

@@ -26,7 +26,8 @@ export default function Card(props) {
 
   const swipeEnd = (key, data) => {
     if (data.translateX < -swipeDist) props.deleteTask(props.task.id);
-    else if (data.translateX > swipeDist) props.setCompleted(props.task.id);
+    else if (data.translateX > swipeDist)
+      setTimeout(() => props.setCompleted(props.task.id), 500);
   };
 
   function onSwipeValueChange(swipeData) {
@@ -106,7 +107,7 @@ export default function Card(props) {
               color: active ? COLORS.secondary : COLORS.accent,
             }}
           >
-            {props.task.taskName}
+            {props.task.name}
           </Text>
           <NotifyIcon />
         </View>
