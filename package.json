@@ -33,7 +33,10 @@
     "react-native-safe-area-context": "3.3.2",
     "react-native-swipe-list-view": "^3.2.9",
     "react-native-web": "0.17.1",
-    "expo-updates": "~0.11.7"
+    "expo-updates": "~0.11.7",
+    "expo-location": "~14.0.1",
+    "expo-background-fetch": "~10.1.0",
+    "expo-task-manager": "~10.1.0"
   },
   "devDependencies": {
     "@babel/core": "^7.12.9"

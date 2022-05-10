@@ -14,7 +14,6 @@ import { useNavigation } from "@react-navigation/native";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import { TextInput } from "react-native-gesture-handler";
 import DropDownPicker from "react-native-dropdown-picker";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { Header, LocateMap } from "../components";
 
 export default function ActivityPage({ route }) {
@@ -229,7 +228,9 @@ export default function ActivityPage({ route }) {
           </TouchableOpacity>
           <Text style={{ marginHorizontal: SIZES.padding, ...FONTS.p_regular }}>
             {task.location
-              ? `Latitude: ${task.location.latitude}\nLongitude: ${task.location.longitude}`
+              ? task.location.type === "custom"
+                ? `Latitude: ${task.location.latitude}\nLongitude: ${task.location.longitude}`
+                : `nearby ${task.location.type}`
               : "Not Set"}
           </Text>
         </View>

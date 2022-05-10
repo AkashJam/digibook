@@ -16,11 +16,11 @@ function StackNav() {
         headerShown: false,
       }}
     >
+      <Stack.Screen name="Test" component={TestPage} />
       <Stack.Screen name="Auth" component={AuthPage} />
       <Stack.Screen name="Home" component={HomePage} />
       <Stack.Screen name="Categories" component={CategoryPage} />
       <Stack.Screen name="Activity" component={ActivityPage} />
-      {/* <Stack.Screen name="Settings" component={SettingsScreen} /> */}
     </Stack.Navigator>
   );
 }

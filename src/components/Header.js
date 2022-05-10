@@ -43,13 +43,13 @@ export default function Header({ screen }) {
 const styles = StyleSheet.create({
   container: {
     position: "absolute",
-    paddingTop: 68,
+    paddingTop: 48,
     // top: 0,
     // left: 0,
     width: "100%",
     backgroundColor: COLORS.primary,
     zIndex: 2,
-    height: 126,
+    height: 86,
     display: "flex",
     flexDirection: "row",
     paddingHorizontal: 15,

@@ -20,10 +20,8 @@ export default function CategoryPage() {
   const [state, dispatch] = React.useContext(UserContext);
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState(1);
-  let categories = [{ label: "All", value: 1 }];
-  state.groups.forEach((element) => {
-    if(element.active) categories.push({ label: element.name, value: element.id });
-  });
+  let categories = state.groups.filter((group)=>group.active)//filter and then push all
+  categories.push({ label: "All", value: 1 });
   const [items, setItems] = useState(categories);
 
   function addTask(taskName) {
@@ -47,7 +45,7 @@ export default function CategoryPage() {
       //   if (items[i].label !== state.groups[i-1].name) console.log("add group");
       // }
       // } else {
-      if (items.length - 1 > state.groups.length) addGroup(items[items.length - 1].label);
+      if (items.length - 1 > state.groups.filter((group)=>group.active).length) addGroup(items[items.length - 1].label);
     }
   }, [items]);
 

@@ -39,7 +39,7 @@ const PAGE = {
     //   ? 40
     //   : StatusBar.currentHeight > 30
     //   ? StatusBar.currentHeight + 10
-    120,
+    90,
   height: "100%",
   backgroundColor: COLORS.primary,
   paddingHorizontal: SIZES.padding,

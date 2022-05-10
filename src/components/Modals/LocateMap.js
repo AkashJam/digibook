@@ -6,9 +6,10 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { COLORS, SIZES, FONTS, PAGEHEAD } from "../../constants/index";
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import MapView, { Marker } from "react-native-maps";
 import DropDownPicker from "react-native-dropdown-picker";
+import * as Location from "expo-location";
 
 export default function LocateMap(props) {
   const [coordinates, setCoordinates] = useState(
@@ -17,29 +18,111 @@ export default function LocateMap(props) {
           latitude: props.location.latitude,
           longitude: props.location.longitude,
         }
-      : { latitude: 45.4642, longitude: 9.19 }
+      : null
   );
+  // console.log(coordinates);
 
   const [open, setOpen] = useState(false);
-  const [value, setValue] = useState(props.location ? props.location.type : 1);
+  const [value, setValue] = useState(
+    props.location ? props.location.type : "custom"
+  );
   const categories = [
-    { label: "Custom", value: 1 },
-    { label: "Hospital", value: 2 },
-    { label: "Restaurant", value: 3 },
-    { label: "Supermarket", value: 4 },
+    { label: "Custom", value: "custom" },
+    { label: "Hospital", value: "hospital" },
+    { label: "Restaurant", value: "restaurant" },
+    { label: "Supermarket", value: "supermarket" },
   ];
   const [items, setItems] = useState(categories);
 
-  // const response = fetch(
-  //   `http://www.overpass-api.de/api/interpreter?data=[out:json];node
-  //   ["shop"="supermarket"]
-  //   (41.884387437208,12.480683326721,41.898699521063,12.503321170807);
-  //   out;`
-  // )
-  //   .then((response) => response.json())
-  //   .then((data) => console.log(data.elements));
+  const location = useRef(null);
 
-  // const setLocation = () => {};
+  useEffect(() => {
+    (async () => {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        console.log("Permission to access location was denied");
+      } else {
+        location.current = await Location.getCurrentPositionAsync({});
+        if (!coordinates) {
+          setCoordinates({
+            latitude: location.current.coords.latitude,
+            longitude: location.current.coords.longitude,
+          });
+        }
+      }
+    })();
+  }, [coordinates]);
+
+  useEffect(() => {
+    // console.log(location.current);
+    if (value !== "custom" && location.current) {
+      const response = fetch(
+        `http://www.overpass-api.de/api/interpreter?data=[out:json];node
+        ["shop"=${value}]
+        (${location.current.coords.latitude - 0.005},${
+          location.current.coords.longitude - 0.005
+        },${location.current.coords.latitude + 0.005},${
+          location.current.coords.longitude + 0.005
+        });
+        out;`
+      )
+        .then((response) => response.json())
+        .then((data) => {
+          // console.log(data.elements);
+          if (data.elements.length !== 0) {
+            let lat = 0;
+            let lon = 0;
+            let delta = 1;
+            for (let i = 0; i < data.elements.length; i++) {
+              let deltaTest = distance(
+                data.elements[i].lat,
+                location.current.coords.latitude,
+                data.elements[i].lon,
+                location.current.coords.longitude
+              );
+              if (delta > deltaTest) {
+                lat = data.elements[i].lat;
+                lon = data.elements[i].lon;
+                delta = deltaTest;
+                console.log(data.elements[i], delta);
+              }
+            }
+            setCoordinates({
+              latitude: lat,
+              longitude: lon,
+            });
+          }
+        });
+    }
+  }, [value]);
+
+  const changeLocation = () => {
+    props.setLocation({ type: value, ...coordinates });
+  };
+
+  function distance(lat1, lat2, lon1, lon2) {
+    // The math module contains a function
+    // named toRadians which converts from
+    // degrees to radians.
+    lon1 = (lon1 * Math.PI) / 180;
+    lon2 = (lon2 * Math.PI) / 180;
+    lat1 = (lat1 * Math.PI) / 180;
+    lat2 = (lat2 * Math.PI) / 180;
+    // Haversine formula
+    let dlon = lon2 - lon1;
+    let dlat = lat2 - lat1;
+    let a =
+      Math.pow(Math.sin(dlat / 2), 2) +
+      Math.cos(lat1) * Math.cos(lat2) * Math.pow(Math.sin(dlon / 2), 2);
+
+    let c = 2 * Math.asin(Math.sqrt(a));
+
+    // Radius of earth in kilometers. Use 3956
+    // for miles
+    let r = 6371;
+    // calculate the result
+    return c * r;
+  }
 
   return (
     <View style={styles.overlay}>
@@ -87,34 +170,33 @@ export default function LocateMap(props) {
               setItems={setItems}
             />
           </View>
-          <MapView
-            style={styles.map}
-            zoomControlEnabled={true}
-            initialRegion={{
-              latitude: 45.4642,
-              longitude: 9.19,
-              latitudeDelta: 0.0922,
-              longitudeDelta: 0.0421,
-            }}
-          >
-            <Marker
-              draggable
-              pinColor="rgb(28,115,180)"
-              title="Hold to drag"
-              coordinate={coordinates}
-              onDragEnd={(e) => setCoordinates(e.nativeEvent.coordinate)}
-            />
-          </MapView>
+          {coordinates && (
+            <MapView
+              style={styles.map}
+              zoomControlEnabled={true}
+              initialRegion={{
+                latitude: coordinates.latitude,
+                longitude: coordinates.longitude,
+                latitudeDelta: 0.0922,
+                longitudeDelta: 0.0421,
+              }}
+            >
+              <Marker
+                draggable
+                pinColor="rgb(28,115,180)"
+                title="Hold to drag"
+                coordinate={coordinates}
+                onDragEnd={(e) => setCoordinates(e.nativeEvent.coordinate)}
+              />
+            </MapView>
+          )}
           <View style={styles.bottom}>
             <TouchableOpacity style={styles.button} onPress={props.close}>
               <Text style={{ ...FONTS.h2_bold, color: "rgb(28,115,180)" }}>
                 Cancel
               </Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.button}
-              onPress={() => props.setLocation(coordinates)}
-            >
+            <TouchableOpacity style={styles.button} onPress={changeLocation}>
               <Text style={{ ...FONTS.h2_bold, color: "rgb(28,115,180)" }}>
                 Ok
               </Text>

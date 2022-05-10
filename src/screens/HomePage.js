@@ -38,29 +38,23 @@ export default function HomePage({ navigation }) {
   };
 
   useEffect(() => {
-    setList(state.activities);
+    setList(state.activities.filter((task) => task.active));
   }, [state]);
 
-  // const [holiday, setHoliday] = useState("");
-  // if (date.toDateString() === new Date().toDateString() && holiday!=="") {
-  //   let day = new Date().getDate();
-  //   let month = new Date().getMonth() + 1;
-  //   let year = new Date().getFullYear();
-  //   const response = fetch(
-  //     `https://calendarific.com/api/v2/holidays?&api_key=${process.env.calendrific}&country=IT&year=${year}&day=${day}&month=${month}`
-  //   )
-  //     .then((response) => response.json())
-  //     .then((data) => setHoliday(data.response.holidays[0].description));
-  // }
-
-  // const response = fetch(
-  //   `http://www.overpass-api.de/api/interpreter?data=[out:json];node
-  //   ["shop"="supermarket"]
-  //   (41.884387437208,12.480683326721,41.898699521063,12.503321170807);
-  //   out;`
-  // )
-  //   .then((response) => response.json())
-  //   .then((data) => console.log(data.elements));
+  const [holiday, setHoliday] = useState("");
+  if (holiday === "") {
+    let day = new Date().getDate();
+    let month = new Date().getMonth() + 1;
+    let year = new Date().getFullYear();
+    const response = fetch(
+      `https://calendarific.com/api/v2/holidays?&api_key=${process.env.calendrific}&country=IT&year=${year}&day=${day}&month=${month}`
+    )
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.response.holidays.length !== 0)
+          setHoliday(data.response.holidays[0].description);
+      });
+  }
 
   function addTask(taskName) {
     dispatch({
@@ -153,18 +147,20 @@ export default function HomePage({ navigation }) {
               />
             </TouchableOpacity>
           </Pressable>
-          {/* <Text
-            style={{
-              ...PAGEHEAD,
-              backgroundColor: COLORS.secondary,
-              margin: SIZES.margin,
-              marginTop: 0,
-              color: COLORS.accent,
-              borderRadius: SIZES.borderRadius
-            }}
-          >
-            {holiday}
-          </Text> */}
+          {holiday !== "" && (
+            <Text
+              style={{
+                ...PAGEHEAD,
+                backgroundColor: COLORS.secondary,
+                margin: SIZES.margin,
+                marginTop: 0,
+                color: COLORS.accent,
+                borderRadius: SIZES.borderRadius,
+              }}
+            >
+              {holiday}
+            </Text>
+          )}
         </View>
         <GestureHandlerRootView style={{ flex: 1 }}>
           {/*calender icon which opens a calender modal with dates that have tasks highlighted as well as selected date*/}
@@ -173,7 +169,6 @@ export default function HomePage({ navigation }) {
               <Text style={PAGEHEAD}>What to do today</Text>
               {list.filter(
                 (task) =>
-                  task.active &&
                   task.datetime &&
                   !task.completed &&
                   new Date(task.datetime).toDateString() === date.toDateString()
@@ -181,7 +176,6 @@ export default function HomePage({ navigation }) {
                 <FlatList
                   data={list.filter(
                     (task) =>
-                      task.active &&
                       task.datetime &&
                       !task.completed &&
                       new Date(task.datetime).toDateString() ===
@@ -193,7 +187,6 @@ export default function HomePage({ navigation }) {
               )}
               {list.filter(
                 (task) =>
-                  task.active &&
                   task.datetime &&
                   !task.completed &&
                   new Date(task.datetime).toDateString() === date.toDateString()
@@ -201,7 +194,6 @@ export default function HomePage({ navigation }) {
                 <Text style={styles.empty}>
                   {list.filter(
                     (task) =>
-                      task.active &&
                       task.datetime &&
                       task.completed &&
                       new Date(task.datetime).toDateString() ===
@@ -213,7 +205,6 @@ export default function HomePage({ navigation }) {
               )}
               {list.filter(
                 (task) =>
-                  task.active &&
                   task.datetime &&
                   task.completed &&
                   new Date(task.datetime).toDateString() === date.toDateString()
@@ -223,7 +214,7 @@ export default function HomePage({ navigation }) {
                   <FlatList
                     data={list.filter(
                       (task) =>
-                        task.active &&
+                        task.completed &&
                         task.datetime &&
                         new Date(task.datetime).toDateString() ===
                           date.toDateString()
@@ -274,17 +265,6 @@ export default function HomePage({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    paddingTop: Platform.OS === "ios" ? 40 : StatusBar.currentHeight + 10,
-    flex: 1,
-    backgroundColor: COLORS.primary,
-    padding: SIZES.padding,
-  },
-  heading: {
-    ...FONTS.h1_bold,
-    color: COLORS.accent,
-    padding: SIZES.padding,
-  },
   info: {
     backgroundColor: COLORS.accent,
     borderRadius: SIZES.borderRadius,
