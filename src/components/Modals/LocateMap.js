@@ -4,14 +4,18 @@ import {
   Dimensions,
   Text,
   TouchableOpacity,
+  Modal,
+  TouchableWithoutFeedback,
 } from "react-native";
 import { COLORS, SIZES, FONTS, PAGEHEAD } from "../../constants/index";
 import React, { useState, useEffect, useRef } from "react";
 import MapView, { Marker } from "react-native-maps";
 import DropDownPicker from "react-native-dropdown-picker";
 import * as Location from "expo-location";
+import { UserContext, toastr } from "../../globalvars";
 
 export default function LocateMap(props) {
+  const [state, dispatch] = React.useContext(UserContext);
   const [coordinates, setCoordinates] = useState(
     props.location
       ? {
@@ -20,7 +24,6 @@ export default function LocateMap(props) {
         }
       : null
   );
-  // console.log(coordinates);
 
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState(
@@ -29,12 +32,17 @@ export default function LocateMap(props) {
   const categories = [
     { label: "Custom", value: "custom" },
     { label: "Hospital", value: "hospital" },
-    { label: "Restaurant", value: "restaurant" },
     { label: "Supermarket", value: "supermarket" },
+    { label: "Library", value: "library" },
+    { label: "ATM", value: "atm" },
+    { label: "Bank", value: "bank" },
+    { label: "Pharmacy", value: "pharmacy" },
+    { label: "Post Office", value: "post_office" },
   ];
   const [items, setItems] = useState(categories);
 
   const location = useRef(null);
+  const name = useRef("You are here");
 
   useEffect(() => {
     (async () => {
@@ -56,49 +64,86 @@ export default function LocateMap(props) {
   useEffect(() => {
     // console.log(location.current);
     if (value !== "custom" && location.current) {
-      const response = fetch(
-        `http://www.overpass-api.de/api/interpreter?data=[out:json];node
-        ["shop"=${value}]
-        (${location.current.coords.latitude - 0.005},${
-          location.current.coords.longitude - 0.005
-        },${location.current.coords.latitude + 0.005},${
-          location.current.coords.longitude + 0.005
-        });
-        out;`
-      )
-        .then((response) => response.json())
-        .then((data) => {
-          // console.log(data.elements);
-          if (data.elements.length !== 0) {
-            let lat = 0;
-            let lon = 0;
-            let delta = 1;
-            for (let i = 0; i < data.elements.length; i++) {
-              let deltaTest = distance(
-                data.elements[i].lat,
-                location.current.coords.latitude,
-                data.elements[i].lon,
-                location.current.coords.longitude
-              );
-              if (delta > deltaTest) {
-                lat = data.elements[i].lat;
-                lon = data.elements[i].lon;
-                delta = deltaTest;
-                console.log(data.elements[i], delta);
-              }
+      if (
+        state.locations &&
+        state.locations.lat &&
+        state.locations.lon &&
+        (Math.abs(state.locations.lat - location.current.coords.latitude) >=
+          0.05 ||
+          Math.abs(state.locations.lon - location.current.coords.lon) >=
+            0.05) &&
+        state.locations[`${value}`] !== undefined &&
+        state.locations[`${value}`].length !== 0
+      ) {
+        const loc_data = state.locations[`${value}`];
+        const stored_loc = nearestPoint(loc_data);
+        setCoordinates(stored_loc);
+      } else {
+        let type = value === "supermarket" ? "shop" : "amenity";
+        fetch(
+          `http://www.overpass-api.de/api/interpreter?data=[out:json];node
+          ["${type}"=${value}]
+          (${location.current.coords.latitude - 0.05},${
+            location.current.coords.longitude - 0.05
+          },${location.current.coords.latitude + 0.05},${
+            location.current.coords.longitude + 0.05
+          });
+          out;`
+        )
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.elements.length !== 0) {
+              const API_data = data.elements.map((element) => {
+                return {
+                  id: element.id,
+                  lat: element.lat,
+                  lon: element.lon,
+                  name: element.tags.name,
+                };
+              });
+              dispatch({
+                type: "set_location",
+                lat: location.current.coords.latitude,
+                lon: location.current.coords.longitude,
+                location: API_data,
+                use: value,
+              });
+              const API_loc = nearestPoint(API_data);
+              setCoordinates(API_loc);
             }
-            setCoordinates({
-              latitude: lat,
-              longitude: lon,
-            });
-          }
-        });
+          });
+      }
     }
   }, [value]);
 
   const changeLocation = () => {
     props.setLocation({ type: value, ...coordinates });
   };
+
+  function nearestPoint(data) {
+    let lat = 0;
+    let lon = 0;
+    let delta = 100;
+    for (let i = 0; i < data.length; i++) {
+      let deltaTest = distance(
+        data[i].lat,
+        location.current.coords.latitude,
+        data[i].lon,
+        location.current.coords.longitude
+      );
+      if (delta > deltaTest) {
+        lat = data[i].lat;
+        lon = data[i].lon;
+        delta = deltaTest;
+        name.current = data[i].name;
+        // console.log("closer", data);
+      }
+    }
+    return {
+      latitude: lat,
+      longitude: lon,
+    };
+  }
 
   function distance(lat1, lat2, lon1, lon2) {
     // The math module contains a function
@@ -124,88 +169,119 @@ export default function LocateMap(props) {
     return c * r;
   }
 
-  return (
-    <View style={styles.overlay}>
-      <View style={styles.modal}>
-        <View
-          style={{
-            backgroundColor: "rgba(28,115,180,255)",
-            borderRadius: 5,
-            overflow: "hidden",
-          }}
+  if (!props.map) {
+    return null;
+  } else {
+    return (
+      <View style={styles.overlay}>
+        <Modal
+          animationType="fade"
+          transparent={true}
+          visible={props.map}
+          onRequestClose={() => props.close()}
         >
-          <Text
-            style={{
-              ...PAGEHEAD,
-              marginHorizontal: SIZES.padding,
-              marginTop: SIZES.padding,
-            }}
+          <TouchableOpacity
+            activeOpacity={1}
+            style={{ height: "100%", width: "100%" }}
+            onPress={() => props.close()}
           >
-            Location
-          </Text>
-          <View
-            style={{
-              width: "100%",
-              padding: SIZES.padding,
-              justifyContent: "center",
-            }}
-          >
-            <DropDownPicker
-              style={styles.dropdown}
-              dropDownContainerStyle={styles.container}
-              textStyle={{
-                color: COLORS.secondary,
-                ...FONTS.h2_bold,
-              }}
-              listItemLabelStyle={FONTS.p_regular}
-              searchTextInputStyle={FONTS.p_regular}
-              searchable={true}
-              searchPlaceholder="Enter a group name"
-              addCustomItem={true}
-              open={open}
-              value={value}
-              items={items}
-              setOpen={setOpen}
-              setValue={setValue}
-              setItems={setItems}
-            />
-          </View>
-          {coordinates && (
-            <MapView
-              style={styles.map}
-              zoomControlEnabled={true}
-              initialRegion={{
-                latitude: coordinates.latitude,
-                longitude: coordinates.longitude,
-                latitudeDelta: 0.0922,
-                longitudeDelta: 0.0421,
-              }}
-            >
-              <Marker
-                draggable
-                pinColor="rgb(28,115,180)"
-                title="Hold to drag"
-                coordinate={coordinates}
-                onDragEnd={(e) => setCoordinates(e.nativeEvent.coordinate)}
-              />
-            </MapView>
-          )}
-          <View style={styles.bottom}>
-            <TouchableOpacity style={styles.button} onPress={props.close}>
-              <Text style={{ ...FONTS.h2_bold, color: "rgb(28,115,180)" }}>
-                Cancel
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.button} onPress={changeLocation}>
-              <Text style={{ ...FONTS.h2_bold, color: "rgb(28,115,180)" }}>
-                Ok
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+            <View style={styles.modal}>
+              <TouchableWithoutFeedback>
+                <View
+                  style={{
+                    backgroundColor: "rgba(28,115,180,255)",
+                    borderRadius: 5,
+                    overflow: "hidden",
+                  }}
+                >
+                  <Text
+                    style={{
+                      ...PAGEHEAD,
+                      marginHorizontal: SIZES.padding,
+                      marginTop: SIZES.padding,
+                    }}
+                  >
+                    Location
+                  </Text>
+                  <View
+                    style={{
+                      width: "100%",
+                      padding: SIZES.padding,
+                      justifyContent: "center",
+                    }}
+                  >
+                    <DropDownPicker
+                      style={styles.dropdown}
+                      dropDownContainerStyle={styles.container}
+                      textStyle={{
+                        color: COLORS.secondary,
+                        ...FONTS.h2_bold,
+                      }}
+                      listItemLabelStyle={FONTS.p_regular}
+                      searchTextInputStyle={FONTS.p_regular}
+                      searchable={true}
+                      searchPlaceholder="Enter a group name"
+                      addCustomItem={true}
+                      open={open}
+                      value={value}
+                      items={items}
+                      setOpen={setOpen}
+                      setValue={setValue}
+                      setItems={setItems}
+                    />
+                  </View>
+                  {coordinates && (
+                    <MapView
+                      style={styles.map}
+                      zoomControlEnabled={true}
+                      region={{
+                        latitude: coordinates.latitude,
+                        longitude: coordinates.longitude,
+                        latitudeDelta: 0.012,
+                        longitudeDelta: 0.006,
+                      }}
+                    >
+                      <Marker
+                        draggable
+                        pinColor="rgb(28,115,180)"
+                        title={name.current}
+                        coordinate={coordinates}
+                        onDragEnd={(e) =>
+                          setCoordinates(e.nativeEvent.coordinate)
+                        }
+                      />
+                    </MapView>
+                  )}
+                  <View style={styles.bottom}>
+                    <TouchableOpacity
+                      style={styles.button}
+                      onPress={props.close}
+                    >
+                      <Text
+                        style={{ ...FONTS.h2_bold, color: "rgb(28,115,180)" }}
+                      >
+                        Cancel
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.button}
+                      onPress={changeLocation}
+                    >
+                      <Text
+                        style={{ ...FONTS.h2_bold, color: "rgb(28,115,180)" }}
+                      >
+                        Ok
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </TouchableWithoutFeedback>
+            </View>
+          </TouchableOpacity>
+        </Modal>
       </View>
-    </View>
-  );
+    );
+  }
 }
 
 const styles = new StyleSheet.create({

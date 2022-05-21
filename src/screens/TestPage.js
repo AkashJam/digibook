@@ -24,7 +24,6 @@ TaskManager.defineTask(BACKGROUND_FETCH_TASK, async () => {
     let location = await Location.getCurrentPositionAsync({}).then((response) =>
       console.log("response",response)
     );
-    console.log("location",location)
   }
 
   // .then((token) => setExpoPushToken(token));

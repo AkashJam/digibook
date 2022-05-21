@@ -14,11 +14,13 @@ export default function ControlButton(props) {
   const [value, setValue] = useState("");
   const [height, setHeight] = useState(0);
 
-  function newTask() {
-    setToggle(false);
-    props.addTask(value);
-    setValue("");
-  }
+  const newTask = async () => {
+    if (value !== "") {
+      setToggle(false);
+      props.addTask(value);
+      setValue("");
+    } else setToggle(false);
+  };
 
   if (!toggle) {
     return (
@@ -39,13 +41,13 @@ export default function ControlButton(props) {
           onContentSizeChange={(event) =>
             setHeight(event.nativeEvent.contentSize.height)
           }
-          style={{ ...styles.textInput, height: Math.max(Dimensions.get("window").width/10,height)}}
+          style={{
+            ...styles.textInput,
+            height: Math.max(Dimensions.get("window").width / 10, height),
+          }}
           value={value}
         />
-        <TouchableOpacity
-          style={styles.button}
-          onPress={() => (value === "" ? setToggle(false) : newTask())}
-        >
+        <TouchableOpacity style={styles.button} onPress={newTask}>
           <Text style={{ ...FONTS.h1_bold }}>+</Text>
         </TouchableOpacity>
       </View>

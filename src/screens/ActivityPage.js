@@ -8,7 +8,7 @@ import {
   Alert,
 } from "react-native";
 import { MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
-import { UserContext, toastr } from "../globalvars";
+import { UserContext, toastr, API } from "../globalvars";
 import { COLORS, PAGE, SIZES, FONTS } from "../constants";
 import { useNavigation } from "@react-navigation/native";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
@@ -22,7 +22,7 @@ export default function ActivityPage({ route }) {
     state.activities.filter((task) => task.id === route.params.id)[0]
   );
 
-  const [name, setName] = useState(task.name);
+  const [name, setName] = useState(task.description);
   const [notify, setNotify] = useState(task.notify);
   const [calendarClock, setCalendarClock] = useState(false);
   const [map, setMap] = useState(false);
@@ -31,8 +31,9 @@ export default function ActivityPage({ route }) {
   );
 
   const [open, setOpen] = useState(false);
-  const [value, setValue] = useState(task.group ? task.group : 1);
-  let categories = [{ label: "All", value: 1 }];
+  const def = state.groups.filter((group) => group.name === "All");
+  const [value, setValue] = useState(def[0].id);
+  let categories = [];
   state.groups.forEach((element) => {
     if (element.active)
       categories.push({ label: element.name, value: element.id });
@@ -47,71 +48,166 @@ export default function ActivityPage({ route }) {
   const handleConfirm = (selectedDate) => {
     setDate(selectedDate);
     setCalendarClock(false);
-    manageTask.changeDate(task.id, selectedDate.toString());
+    if (task.datetime !== selectedDate.toString())
+      manageTask.changeDate(task.id, selectedDate);
   };
 
   const handleToggle = () => {
-    setNotify(!notify);
-    manageTask.notifyToggle(task.id);
+    if (
+      !notify &&
+      (!task.datetime ||
+        (task.datetime && new Date(task.datetime) < new Date())) &&
+      !task.location
+    ) {
+      Alert.alert(
+        "Unable to Notify",
+        "Requires either a date and time set in the future or a location",
+        [
+          {
+            text: "Ok",
+            style: "cancel",
+          },
+        ]
+      );
+    } else {
+      manageTask.notifyToggle(task.id, !notify);
+      setNotify(!notify);
+    }
   };
 
-  const handleEdit = () => {
+  const handleEdit = async () => {
     if (name !== "") {
-      if (task.name !== name) manageTask.renameTask(task.id, name);
+      if (task.description !== name) manageTask.renameTask(task.id, name);
+      if (task.group_id !== value) manageTask.changeGroup(task.id, value);
       navigation.goBack();
-    } else toastr("Task needs a name.", 3000);
+    } else toastr("Task needs a name.");
   };
 
   const setLocation = (location) => {
-    manageTask.changeLocation(task.id, location);
-    setMap(false);
+    if (task.location !== location) {
+      manageTask.changeLocation(task.id, location);
+      setMap(false);
+    }
   };
 
   const removeLocation = () => {
-    Alert.alert(
-      "Remove Location",
-      "Are you sure you want to remove location tag?",
-      [
+    if (task.location !== null) {
+      Alert.alert(
+        "Remove Location",
+        "Are you sure you want to remove location tag?",
+        [
+          {
+            text: "Cancel",
+            style: "cancel",
+          },
+          {
+            text: "Yes",
+            onPress: () => manageTask.changeLocation(task.id, null),
+          },
+        ]
+      );
+    }
+  };
+
+  const removeDate = () => {
+    if (task.datetime !== null) {
+      Alert.alert("Remove Date", "Are you sure you want to remove date tag?", [
         {
           text: "Cancel",
           style: "cancel",
         },
         {
           text: "Yes",
-          onPress: () => manageTask.changeLocation(task.id, null),
+          onPress: () => manageTask.changeDate(task.id, null),
         },
-      ]
-    );
+      ]);
+    }
   };
 
-  const removeDate = () => {
-    Alert.alert("Remove Date", "Are you sure you want to remove date tag?", [
-      {
-        text: "Cancel",
-        style: "cancel",
-      },
-      {
-        text: "Yes",
-        onPress: () => manageTask.changeDate(task.id, null),
-      },
-    ]);
-  };
-
+  let data = {};
   const manageTask = {
-    setCompleted: (id) => dispatch({ type: "toggle_completion", id: id }),
-    renameTask: (id, value) =>
-      dispatch({ type: "rename_task", id: id, name: value }),
-    notifyToggle: (id) => dispatch({ type: "toggle_alarm", id: id }),
-    changeDate: (id, value) => {
-      if (task.datetime !== value) {
-        dispatch({ type: "change_datetime", id: id, datetime: value });
-        setTask({ ...task, datetime: value });
+    setCompleted: async (id, value) => {
+      try {
+        data = await API.updateTask({
+          id: id,
+          task: { completed: value, datetime: new Date() },
+        });
+        if (data.code == 200)
+          dispatch({ type: "toggle_completion", id: id, completed: value });
+        else toastr(data.status);
+      } catch (error) {
+        console.log(error);
       }
     },
-    changeLocation: (id, value) => {
-      if (task.location !== value) {
-        dispatch({ type: "change_location", id: id, location: value });
-        setTask({ ...task, location: value });
+    renameTask: async (id, value) => {
+      try {
+        data = await API.updateTask({
+          id: id,
+          task: { description: value },
+        });
+        if (data.code == 200)
+          dispatch({ type: "rename_task", id: id, name: value });
+        else toastr(data.status);
+      } catch (error) {
+        console.log(error);
+      }
+    },
+    notifyToggle: async (id, value) => {
+      try {
+        data = await API.updateTask({
+          id: action.id,
+          task: { notify: action.notify },
+        });
+        if (data.code == 200)
+          dispatch({ type: "toggle_notification", id: id, notify: value });
+        else toastr(data.status);
+      } catch (error) {
+        console.log(error);
+      }
+    },
+    changeDate: async (id, value) => {
+      try {
+        data = await API.updateTask({
+          id: id,
+          task: { datetime: value },
+        });
+        if (data.code == 200) {
+          dispatch({ type: "change_datetime", id: id, datetime: value });
+          setTask({ ...task, datetime: value });
+        } else {
+          toastr(data.status);
+        }
+      } catch (error) {
+        console.log(error);
+      }
+    },
+    changeLocation: async (id, value) => {
+      try {
+        data = await API.updateTask({
+          id: id,
+          task: { location: value },
+        });
+        if (data.code == 200) {
+          dispatch({ type: "change_location", id: id, location: value });
+          setTask({ ...task, location: value });
+        } else {
+          toastr(data.status);
+        }
+      } catch (error) {
+        console.log(error);
+      }
+    },
+    changeGroup: async (id, value) => {
+      try {
+        data = await API.updateTask({
+          id: id,
+          task: { group_id: value },
+        });
+        if (data.code == 200)
+          dispatch({ type: "change_group", id: id, group_id: value });
+        else toastr(data.status);
+      } catch (error) {
+        console.log(error);
       }
     },
     deleteTask: (id) => {
@@ -122,7 +218,14 @@ export default function ActivityPage({ route }) {
         },
         {
           text: "Yes",
-          onPress: () => dispatch({ type: "delete_task", id: id }),
+          onPress: async () => {
+            data = await API.updateTask({
+              id: id,
+              task: { active: false },
+            });
+            if (data.code == 200) dispatch({ type: "delete_task", id: id });
+            else toastr(data.status);
+          },
         },
       ]);
     },
@@ -138,13 +241,12 @@ export default function ActivityPage({ route }) {
         onCancel={toggleCalendarClock}
         onConfirm={handleConfirm}
       />
-      {map && (
-        <LocateMap
-          location={task.location}
-          close={() => setMap(false)}
-          setLocation={setLocation}
-        />
-      )}
+      <LocateMap
+        map={map}
+        location={task.location}
+        close={() => setMap(false)}
+        setLocation={setLocation}
+      />
       <View style={PAGE} pointerEvents={map ? "none" : "auto"}>
         <DropDownPicker
           style={styles.dropdown}
@@ -205,7 +307,9 @@ export default function ActivityPage({ route }) {
             />
           </TouchableOpacity>
           <Text style={{ marginHorizontal: SIZES.padding, ...FONTS.p_regular }}>
-            {task.datetime ? date.toString() : "Not Set"}
+            {task.datetime
+              ? date.toDateString() + "\n" + date.toTimeString()
+              : "Not Set"}
           </Text>
         </View>
         <View style={styles.tabs}>

@@ -16,7 +16,7 @@ function StackNav() {
         headerShown: false,
       }}
     >
-      <Stack.Screen name="Test" component={TestPage} />
+      {/* <Stack.Screen name="Test" component={TestPage} /> */}
       <Stack.Screen name="Auth" component={AuthPage} />
       <Stack.Screen name="Home" component={HomePage} />
       <Stack.Screen name="Categories" component={CategoryPage} />

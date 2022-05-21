@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { COLORS, SIZES, FONTS, SHADOW, PAGEHEAD } from "../constants";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { toastr, UserContext } from "../globalvars";
+import { toastr, UserContext, API } from "../globalvars";
 import { ActivityIndicator } from "react-native";
 
 export default function AuthPage({ navigation }) {
@@ -58,83 +58,161 @@ export default function AuthPage({ navigation }) {
   const [isLoading, setLoading] = useState(false);
 
   const login = async () => {
-    const check = setTimeout(() => {
-      // Add notification that user does not exist and you can create a user with that name
-      setLoading(false);
-      toastr("User does not exist.", 5000);
-      setCanLogin(false);
-    }, 5000); //Timeout if no reseponse for 5 sec
     setLoading(true);
-    //Need to check with api if user exists and login else
-    const datainfo = await AsyncStorage.getItem(`${username}_info`);
-    let user = JSON.parse(datainfo);
-    if (user !== null) {
-      clearTimeout(check);
-      setLoading(false);
-      //if wrong password
-      if (password !== user.passwordHash) {
+    const data = await API.login({ username: username, password: password });
+    const { code, status, ...userdata } = data;
+    if (code == 200) {
+      try {
+        const datalog = await AsyncStorage.getItem("DN_userlog");
+        const user = JSON.parse(datalog);
+        setLoading(false);
+        dispatch({
+          type: "set_user",
+          user: userdata,
+          locations:
+            user && user.locations
+              ? user.locations
+              : {
+                  lat: null,
+                  lon: null,
+                },
+        });
+        setUsername("");
+        setPassword("");
+        navigation.navigate("Home");
+      } catch (e) {
+        console.log(e);
+        setLoading(false);
+        toastr("Login error.", 5000);
+      }
+    } else {
+      if (code == 406) {
         setCanLogin(false);
         setCanRegister(false);
         setUserColor(COLORS.red);
         setPwdColor(COLORS.red);
-        toastr("Wrong username or password.", 5000);
-      } else {
-        const datalog = await AsyncStorage.getItem(`${username}_log`); //Check local storage for user
-        let log = JSON.parse(datalog);
-        let obj = {
-          username: username,
-          displayName: user.displayName,
-          collaborators: user.collaborators,
-          groups: log.groups,
-          activities: log.activities,
-        };
-        dispatch({ type: "set_user", user: obj });
-        toastr(`Welcome ${username}`, 5000);
-        setUsername("");
-        setPassword("");
-        navigation.navigate("Home");
       }
+      setLoading(false);
+      setCanLogin(false);
+      toastr(data.status, 5000);
     }
+    // const check = setTimeout(() => {
+    //   // Add notification that user does not exist and you can create a user with that name
+    //   setLoading(false);
+    //   toastr("User does not exist.", 5000);
+    //   setCanLogin(false);
+    // }, 5000); //Timeout if no reseponse for 5 sec
+    // setLoading(true);
+    // //Need to check with api if user exists and login else
+    // const data = await API.login({ username: username, password: password });
+    // let { code, status, ...userdata } = data;
+    // if (code != 404) {
+    //   const datainfo = await AsyncStorage.getItem("DN_userinfo");
+    //   let user = JSON.parse(datainfo);
+    //   if (user !== null) {
+    //     clearTimeout(check);
+    //     setLoading(false);
+    //     //if wrong password
+    //     if (password !== user.passwordHash) {
+    //       setCanLogin(false);
+    //       setCanRegister(false);
+    //       setUserColor(COLORS.red);
+    //       setPwdColor(COLORS.red);
+    //       toastr("Wrong username or password.", 5000);
+    //     } else {
+    //       const datalog = await AsyncStorage.getItem("DN_userlog"); //Check local storage for user
+    //       let log = JSON.parse(datalog);
+    //       let obj = {
+    //         username: username,
+    //         displayName: user.displayName,
+    //         range: user.range,
+    //         collaborators: user.collaborators,
+    //         groups: log.groups,
+    //         activities: log.activities,
+    //       };
+    //       dispatch({ type: "set_user", user: obj });
+    //       toastr(`Welcome ${username}`, 5000);
+    //       setUsername("");
+    //       setPassword("");
+    //       navigation.navigate("Home");
+    //     }
+    //   }
+    // }
   };
 
   const register = async () => {
-    const check = setTimeout(async () => {
-      setLoading(false);
+    setLoading(true);
+    const data = await API.register({ username: username, password: password });
+    console.log(data);
+    if (data.code == 200) {
       try {
         await AsyncStorage.setItem(
-          `${username}_info`,
+          "DN_userlog",
           JSON.stringify({
+            id: data.id,
             username: username,
             displayName: "",
-            passwordHash: password,
+            range: 0.75,
             collaborators: [],
-          })
-        );
-        await AsyncStorage.setItem(
-          `${username}_log`,
-          JSON.stringify({
             groups: [],
             activities: [],
+            locations: {
+              lat: null,
+              lon: null,
+            },
           })
         );
+        setLoading(false);
         setCanRegister(false);
         setCanLogin(true);
         toastr("You have been registered.", 5000);
       } catch (e) {
         toastr("Registration error.", 5000);
       }
-    }, 5000);
-    setLoading(true);
-    //Need to check with api if user exists and login else
-    const user = await AsyncStorage.getItem(`${username}_info`); //Check local storage for user
-    //if user exists
-    if (user !== null) {
-      clearTimeout(check);
-      //Notification that username exists
+    } else {
       setLoading(false);
-      toastr("Username already exists.", 5000);
       setCanRegister(false);
+      toastr(data.status, 5000);
     }
+    // const check = setTimeout(async () => {
+    //   setLoading(false);
+    //   try {
+    //     await AsyncStorage.setItem(
+    //       "DN_userinfo",
+    //       JSON.stringify({
+    //         username: username,
+    //         displayName: "",
+    //         range: 0.75,
+    //         passwordHash: password,
+    //         collaborators: [],
+    //       })
+    //     );
+    //     await AsyncStorage.setItem(
+    //       "DN_userlog",
+    //       JSON.stringify({
+    //         groups: [],
+    //         activities: [],
+    //         locations: {}
+    //       })
+    //     );
+    //     setCanRegister(false);
+    //     setCanLogin(true);
+    //     toastr("You have been registered.", 5000);
+    //   } catch (e) {
+    //     toastr("Registration error.", 5000);
+    //   }
+    // }, 5000);
+    // setLoading(true);
+    // //Need to check with api if user exists and login else
+    // const user = await AsyncStorage.getItem(`${username}_info`); //Check local storage for user
+    // //if user exists
+    // if (user !== null) {
+    //   clearTimeout(check);
+    //   //Notification that username exists
+    //   setLoading(false);
+    //   toastr("Username already exists.", 5000);
+    //   setCanRegister(false);
+    // }
   };
 
   useEffect(() => {

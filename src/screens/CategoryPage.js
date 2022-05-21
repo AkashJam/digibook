@@ -8,7 +8,7 @@ import {
   Text,
   Alert,
 } from "react-native";
-import { UserContext } from "../globalvars";
+import { UserContext, toastr, API } from "../globalvars";
 import { COLORS, FONTS, PAGE, SIZES } from "../constants";
 import DropDownPicker from "react-native-dropdown-picker";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -19,39 +19,84 @@ export default function CategoryPage() {
   const navigation = useNavigation();
   const [state, dispatch] = React.useContext(UserContext);
   const [open, setOpen] = useState(false);
-  const [value, setValue] = useState(1);
-  let categories = state.groups.filter((group)=>group.active)//filter and then push all
-  categories.push({ label: "All", value: 1 });
+  const def = state.groups.filter((group) => group.name === "All");
+  const [value, setValue] = useState(def[0].id);
+  let categories = [];
+  state.groups.forEach((element) => {
+    categories.push({ label: element.name, value: element.id });
+  });
   const [items, setItems] = useState(categories);
 
-  function addTask(taskName) {
-    dispatch({
-      type: "add_task",
-      name: taskName,
-      group: value === 1 ? null : value,
-    });
-  }
+  let data = {}
+  const addTask = async (taskName) => {
+    try {
+      data = await API.createTask({
+        id: value,
+        task: {
+          description: taskName,
+        },
+      });
+      if (data.code == 200)
+        dispatch({
+          type: "add_task",
+          description: taskName,
+          group_id: value,
+        });
+      else toastr(data.status);
+    } catch (error) {
+      console.log(error);
+    }
+  };
 
-  function addGroup(groupName) {
-    dispatch({
-      type: "add_group",
-      name: groupName,
-    });
-  }
+  const addGroup = async (groupName) => {
+    try {
+      data = await API.createGroup({
+        id: state.id,
+        group: { name: groupName },
+      });
+      if (data.code == 200)
+        dispatch({
+          type: "add_group",
+          name: groupName,
+        });
+      else toastr(data.status);
+    } catch (error) {
+      console.log(error);
+    }
+  };
 
   useEffect(() => {
-    if (items.length - 1 !== state.groups.length) {
-      // for (let i = 1; i < items.length; i++) {
-      //   if (items[i].label !== state.groups[i-1].name) console.log("add group");
-      // }
-      // } else {
-      if (items.length - 1 > state.groups.filter((group)=>group.active).length) addGroup(items[items.length - 1].label);
-    }
+    if (items.length - 1 > state.groups.filter((group) => group.active).length)
+      addGroup(items[items.length - 1].label);
   }, [items]);
 
   const manageTask = {
-    setCompleted: (id) => dispatch({ type: "toggle_completion", id: id }),
-    notifyToggle: (id) => dispatch({ type: "toggle_alarm", id: id }),
+    setCompleted: async (id, value) => {
+      try {
+        data = await API.updateTask({
+          id: id,
+          task: { completed: value, datetime: new Date() },
+        });
+        if (data.code == 200)
+          dispatch({ type: "toggle_completion", id: id, completed: value });
+        else toastr(data.status);
+      } catch (error) {
+        console.log(error);
+      }
+    },
+    notifyToggle: async (id, value) => {
+      try {
+        data = await API.updateTask({
+          id: action.id,
+          task: { notify: action.notify },
+        });
+        if (data.code == 200)
+          dispatch({ type: "toggle_notification", id: id, notify: value });
+        else toastr(data.status);
+      } catch (error) {
+        console.log(error);
+      }
+    },
     deleteTask: (id) => {
       Alert.alert("Delete Task", "Are you sure you want to delete this task?", [
         {
@@ -60,7 +105,14 @@ export default function CategoryPage() {
         },
         {
           text: "Yes",
-          onPress: () => dispatch({ type: "delete_task", id: id }),
+          onPress: async () => {
+            data = await API.updateTask({
+              id: id,
+              task: { active: false },
+            });
+            if (data.code == 200) dispatch({ type: "delete_task", id: id });
+            else toastr(data.status);
+          },
         },
       ]);
     },
@@ -80,7 +132,7 @@ export default function CategoryPage() {
           listItemLabelStyle={FONTS.p_regular}
           searchTextInputStyle={FONTS.p_regular}
           searchable={true}
-          searchPlaceholder="Enter a group name"
+          searchPlaceholder="Create new group name"
           addCustomItem={true}
           open={open}
           value={value}
@@ -92,7 +144,7 @@ export default function CategoryPage() {
         <GestureHandlerRootView style={{ flex: 1, marginVertical: 20 }}>
           <FlatList
             data={state.activities.filter(
-              (task) => task.active && (value === 1 || task.group === value)
+              (task) => value === def[0].id || task.group === value
             )}
             renderItem={({ item, index }) => (
               <Card
@@ -103,7 +155,7 @@ export default function CategoryPage() {
                 {...manageTask}
               />
             )}
-            keyExtractor={(item) => item.key}
+            keyExtractor={(item) => `${item.id}`}
           />
         </GestureHandlerRootView>
         <ControlButton addTask={addTask} />

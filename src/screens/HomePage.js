@@ -3,8 +3,6 @@ import {
   View,
   Text,
   StyleSheet,
-  StatusBar,
-  Platform,
   Alert,
   Pressable,
   FlatList,
@@ -16,10 +14,11 @@ import { COLORS, SIZES, FONTS, SHADOW, PAGE, PAGEHEAD } from "../constants";
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import { CALENDRIFIC } from "@env";
-import { UserContext } from "../globalvars";
+import { UserContext, toastr, API } from "../globalvars";
 
 export default function HomePage({ navigation }) {
   const [state, dispatch] = React.useContext(UserContext);
+  const defGroup = state.groups.filter((group) => group.name === "All");
   const [list, setList] = useState(state.activities);
   const [date, setDate] = useState(new Date());
   const [calendar, setCalendar] = useState(false);
@@ -38,7 +37,7 @@ export default function HomePage({ navigation }) {
   };
 
   useEffect(() => {
-    setList(state.activities.filter((task) => task.active));
+    setList(state.activities);
   }, [state]);
 
   const [holiday, setHoliday] = useState("");
@@ -56,29 +55,54 @@ export default function HomePage({ navigation }) {
       });
   }
 
-  function addTask(taskName) {
-    dispatch({
-      type: "add_task",
-      name: taskName,
-      datetime: date.toString(),
-    });
-  }
+  let data = {};
+  const addTask = async (taskName) => {
+    try {
+      data = await API.createTask({
+        id: defGroup[0].id,
+        task: {
+          datetime: date,
+          description: taskName,
+        },
+      });
+      if (data.code == 200)
+        dispatch({
+          type: "add_task",
+          description: taskName,
+          datetime: date.toString(),
+          group_id: defGroup[0].id,
+        });
+      else toastr(data.status);
+    } catch (error) {
+      console.log(error);
+    }
+  };
 
   const manageTask = {
-    setCompleted: (id) => dispatch({ type: "toggle_completion", id: id }),
-    renameTask: (id, value) =>
-      dispatch({ type: "rename_task", id: id, name: value }),
-    notifyToggle: (id) => dispatch({ type: "toggle_alarm", id: id }),
-    changeDate: (id, value) => {
-      let taskToUpdate = list.filter((todo) => todo.id === id)[0];
-      if (taskToUpdate.date !== value) {
-        dispatch({ type: "change_datetime", id: id, datetime: value });
+    setCompleted: async (id, value) => {
+      try {
+        data = await API.updateTask({
+          id: id,
+          task: { completed: value, datetime: new Date() },
+        });
+        if (data.code == 200)
+          dispatch({ type: "toggle_completion", id: id, completed: value });
+        else toastr(data.status);
+      } catch (error) {
+        console.log(error);
       }
     },
-    changeLocation: (id, value) => {
-      let taskToUpdate = list.filter((todo) => todo.id === id)[0];
-      if (taskToUpdate.date !== value) {
-        dispatch({ type: "change_location", id: id, location: value });
+    notifyToggle: async (id, value) => {
+      try {
+        data = await API.updateTask({
+          id: action.id,
+          task: { notify: action.notify },
+        });
+        if (data.code == 200)
+          dispatch({ type: "toggle_notification", id: id, notify: value });
+        else toastr(data.status);
+      } catch (error) {
+        console.log(error);
       }
     },
     deleteTask: (id) => {
@@ -89,7 +113,14 @@ export default function HomePage({ navigation }) {
         },
         {
           text: "Yes",
-          onPress: () => dispatch({ type: "delete_task", id: id }),
+          onPress: async () => {
+            data = await API.updateTask({
+              id: id,
+              task: { active: false },
+            });
+            if (data.code == 200) dispatch({ type: "delete_task", id: id });
+            else toastr(data.status);
+          },
         },
       ]);
     },
@@ -182,7 +213,7 @@ export default function HomePage({ navigation }) {
                         date.toDateString()
                   )}
                   renderItem={renderItem}
-                  keyExtractor={(item) => item.key}
+                  keyExtractor={(item) => `${item.id}`}
                 />
               )}
               {list.filter(
@@ -237,7 +268,6 @@ export default function HomePage({ navigation }) {
               {date > new Date() &&
                 list.filter(
                   (task) =>
-                    task.active &&
                     task.datetime &&
                     new Date(task.datetime).toDateString() ===
                       date.toDateString()
@@ -247,7 +277,6 @@ export default function HomePage({ navigation }) {
               <FlatList
                 data={list.filter(
                   (task) =>
-                    task.active &&
                     task.datetime &&
                     new Date(task.datetime).toDateString() ===
                       date.toDateString()
