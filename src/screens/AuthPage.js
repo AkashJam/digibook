@@ -12,6 +12,20 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { toastr, UserContext, API } from "../globalvars";
 import { ActivityIndicator } from "react-native";
 
+const log = {
+  id: 0,
+  username: "",
+  displayName: "",
+  range: 0.75,
+  collaborators: [],
+  groups: [],
+  activities: [],
+  locations: {
+    lat: null,
+    lon: null,
+  },
+};
+
 export default function AuthPage({ navigation }) {
   const [state, dispatch] = React.useContext(UserContext);
 
@@ -57,9 +71,18 @@ export default function AuthPage({ navigation }) {
 
   const [isLoading, setLoading] = useState(false);
 
+  const errorFunc = () => {
+    setLoading(false);
+    toastr("Error connecting to server");
+    return false;
+  };
+
   const login = async () => {
     setLoading(true);
+    const timeout = setTimeout(errorFunc, 5000);
     const data = await API.login({ username: username, password: password });
+    if (!data) return errorFunc;
+    clearTimeout(timeout);
     const { code, status, ...userdata } = data;
     if (code == 200) {
       try {
@@ -83,7 +106,7 @@ export default function AuthPage({ navigation }) {
       } catch (e) {
         console.log(e);
         setLoading(false);
-        toastr("Login error.", 5000);
+        toastr("Login error.");
       }
     } else {
       if (code == 406) {
@@ -94,7 +117,7 @@ export default function AuthPage({ navigation }) {
       }
       setLoading(false);
       setCanLogin(false);
-      toastr(data.status, 5000);
+      toastr(data.status);
     }
     // const check = setTimeout(() => {
     //   // Add notification that user does not exist and you can create a user with that name
@@ -142,25 +165,15 @@ export default function AuthPage({ navigation }) {
 
   const register = async () => {
     setLoading(true);
+    const timeout = setTimeout(errorFunc, 5000);
     const data = await API.register({ username: username, password: password });
-    console.log(data);
+    if (!data) return errorFunc;
+    clearTimeout(timeout);
     if (data.code == 200) {
       try {
         await AsyncStorage.setItem(
           "DN_userlog",
-          JSON.stringify({
-            id: data.id,
-            username: username,
-            displayName: "",
-            range: 0.75,
-            collaborators: [],
-            groups: [],
-            activities: [],
-            locations: {
-              lat: null,
-              lon: null,
-            },
-          })
+          JSON.stringify({ ...log, id: data.id, username: username })
         );
         setLoading(false);
         setCanRegister(false);

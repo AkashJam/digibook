@@ -14,6 +14,8 @@ import DropDownPicker from "react-native-dropdown-picker";
 import * as Location from "expo-location";
 import { UserContext, toastr } from "../../globalvars";
 
+const searchDistance = 0.02;
+
 export default function LocateMap(props) {
   const [state, dispatch] = React.useContext(UserContext);
   const [coordinates, setCoordinates] = useState(
@@ -46,7 +48,7 @@ export default function LocateMap(props) {
 
   useEffect(() => {
     (async () => {
-      let { status } = await Location.requestForegroundPermissionsAsync();
+      let { status } = await Location.requestBackgroundPermissionsAsync();
       if (status !== "granted") {
         console.log("Permission to access location was denied");
       } else {
@@ -69,9 +71,9 @@ export default function LocateMap(props) {
         state.locations.lat &&
         state.locations.lon &&
         (Math.abs(state.locations.lat - location.current.coords.latitude) >=
-          0.05 ||
+          searchDistance ||
           Math.abs(state.locations.lon - location.current.coords.lon) >=
-            0.05) &&
+            searchDistance) &&
         state.locations[`${value}`] !== undefined &&
         state.locations[`${value}`].length !== 0
       ) {
@@ -83,10 +85,10 @@ export default function LocateMap(props) {
         fetch(
           `http://www.overpass-api.de/api/interpreter?data=[out:json];node
           ["${type}"=${value}]
-          (${location.current.coords.latitude - 0.05},${
-            location.current.coords.longitude - 0.05
-          },${location.current.coords.latitude + 0.05},${
-            location.current.coords.longitude + 0.05
+          (${location.current.coords.latitude - searchDistance},${
+            location.current.coords.longitude - searchDistance
+          },${location.current.coords.latitude + searchDistance},${
+            location.current.coords.longitude + searchDistance
           });
           out;`
         )

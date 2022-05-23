@@ -1,7 +1,8 @@
 import HomePage from "./HomePage";
 import { UserProvider } from "../globalvars";
 import AuthPage from "./AuthPage";
-import TestPage from "./TestPage";
+import { UserNotifications } from "../components";
+import SettingsPage from "./SettingsPage";
 import ActivityPage from "./ActivityPage";
 import CategoryPage from "./CategoryPage";
 import { NavigationContainer } from "@react-navigation/native";
@@ -16,7 +17,7 @@ function StackNav() {
         headerShown: false,
       }}
     >
-      {/* <Stack.Screen name="Test" component={TestPage} /> */}
+      {/* <Stack.Screen name="Settings" component={SettingsPage} /> */}
       <Stack.Screen name="Auth" component={AuthPage} />
       <Stack.Screen name="Home" component={HomePage} />
       <Stack.Screen name="Categories" component={CategoryPage} />
@@ -30,6 +31,7 @@ export default function UI() {
     <UserProvider>
       <NavigationContainer>
         <StackNav />
+        <UserNotifications />
       </NavigationContainer>
     </UserProvider>
   );

@@ -205,6 +205,8 @@ const API = {
       });
     return response;
   },
+
+  //locations
 };
 
 export default API;

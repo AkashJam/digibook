@@ -50,6 +50,7 @@ export default function HomePage({ navigation }) {
     )
       .then((response) => response.json())
       .then((data) => {
+        console.log(data)
         if (data.response.holidays.length !== 0)
           setHoliday(data.response.holidays[0].description);
       });
