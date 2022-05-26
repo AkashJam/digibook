@@ -41,20 +41,22 @@ export default function HomePage({ navigation }) {
   }, [state]);
 
   const [holiday, setHoliday] = useState("");
-  if (holiday === "") {
-    let day = new Date().getDate();
-    let month = new Date().getMonth() + 1;
-    let year = new Date().getFullYear();
-    const response = fetch(
-      `https://calendarific.com/api/v2/holidays?&api_key=${process.env.calendrific}&country=IT&year=${year}&day=${day}&month=${month}`
-    )
-      .then((response) => response.json())
-      .then((data) => {
-        console.log(data)
-        if (data.response.holidays.length !== 0)
-          setHoliday(data.response.holidays[0].description);
-      });
-  }
+  // useEffect(() => {
+  //   if (holiday === "") {
+  //     // let day = new Date().getDate();
+  //     let month = date.getMonth() + 1;
+  //     let year = date.getFullYear();
+  //     const response = fetch(
+  //       `https://calendarific.com/api/v2/holidays?&api_key=${process.env.calendrific}&country=IT&year=${year}&month=${month}`
+  //     )
+  //       .then((response) => response.json())
+  //       .then((data) => {
+  //         console.log(data);
+  //         if (data.response.holidays.length !== 0)
+  //           setHoliday(data.response.holidays[0].description);
+  //       });
+  //   }
+  // }, [date]);
 
   let data = {};
   const addTask = async (taskName) => {
@@ -96,8 +98,8 @@ export default function HomePage({ navigation }) {
     notifyToggle: async (id, value) => {
       try {
         data = await API.updateTask({
-          id: action.id,
-          task: { notify: action.notify },
+          id: id,
+          task: { notify: value },
         });
         if (data.code == 200)
           dispatch({ type: "toggle_notification", id: id, notify: value });
@@ -150,10 +152,7 @@ export default function HomePage({ navigation }) {
           onConfirm={handleConfirm}
         />
         <View style={styles.info}>
-          <Pressable
-            onPress={() => navigation.navigate("Auth")}
-            style={styles.date}
-          >
+          <Pressable style={styles.date}>
             <Text
               style={{
                 ...PAGEHEAD,
@@ -252,7 +251,7 @@ export default function HomePage({ navigation }) {
                           date.toDateString()
                     )}
                     renderItem={renderItem}
-                    keyExtractor={(item) => item.key}
+                    keyExtractor={(item) => `${item.id}`}
                   />
                 </>
               )}
@@ -283,7 +282,7 @@ export default function HomePage({ navigation }) {
                       date.toDateString()
                 )}
                 renderItem={renderItem}
-                keyExtractor={(item) => item.key}
+                keyExtractor={(item) => `${item.id}`}
               />
             </>
           )}

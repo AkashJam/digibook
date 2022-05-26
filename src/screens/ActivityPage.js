@@ -6,6 +6,7 @@ import {
   Switch,
   TouchableOpacity,
   Alert,
+  Dimensions,
 } from "react-native";
 import { MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
 import { UserContext, toastr, API } from "../globalvars";
@@ -15,6 +16,7 @@ import DateTimePickerModal from "react-native-modal-datetime-picker";
 import { TextInput } from "react-native-gesture-handler";
 import DropDownPicker from "react-native-dropdown-picker";
 import { Header, LocateMap } from "../components";
+import * as Location from "expo-location";
 
 export default function ActivityPage({ route }) {
   const [state, dispatch] = React.useContext(UserContext);
@@ -23,22 +25,24 @@ export default function ActivityPage({ route }) {
   );
 
   const [name, setName] = useState(task.description);
+  const [height, setHeight] = useState(0);
   const [notify, setNotify] = useState(task.notify);
-  const [calendarClock, setCalendarClock] = useState(false);
-  const [map, setMap] = useState(false);
   const [date, setDate] = useState(
     task.datetime ? new Date(task.datetime) : new Date()
   );
+  const [loc, setLoc] = useState(JSON.parse(task.location));
+  const [completed, setCompleted] = useState(task.completed);
 
   const [open, setOpen] = useState(false);
   const def = state.groups.filter((group) => group.name === "All");
   const [value, setValue] = useState(def[0].id);
   let categories = [];
-  state.groups.forEach((element) => {
-    if (element.active)
-      categories.push({ label: element.name, value: element.id });
-  });
+  state.groups.forEach((element) =>
+    categories.push({ label: element.name, value: element.id })
+  );
   const [items, setItems] = useState(categories);
+  const [calendarClock, setCalendarClock] = useState(false);
+  const [map, setMap] = useState(false);
 
   const toggleCalendarClock = () => {
     setCalendarClock(!calendarClock);
@@ -52,13 +56,8 @@ export default function ActivityPage({ route }) {
       manageTask.changeDate(task.id, selectedDate);
   };
 
-  const handleToggle = () => {
-    if (
-      !notify &&
-      (!task.datetime ||
-        (task.datetime && new Date(task.datetime) < new Date())) &&
-      !task.location
-    ) {
+  const handleNotifyToggle = () => {
+    if (!notify && !(task.datetime || task.location)) {
       Alert.alert(
         "Unable to Notify",
         "Requires either a date and time set in the future or a location",
@@ -75,12 +74,26 @@ export default function ActivityPage({ route }) {
     }
   };
 
+  const handleCompletedToggle = () => {
+    manageTask.setCompleted(task.id, !completed);
+    setCompleted(!completed);
+  };
+
   const handleEdit = async () => {
     if (name !== "") {
       if (task.description !== name) manageTask.renameTask(task.id, name);
       if (task.group_id !== value) manageTask.changeGroup(task.id, value);
       navigation.goBack();
     } else toastr("Task needs a name.");
+  };
+
+  const toggleMapModal = async () => {
+    let { status } = await Location.requestBackgroundPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert("Permission to access location was denied");
+    } else {
+      setMap(true);
+    }
   };
 
   const setLocation = (location) => {
@@ -102,7 +115,10 @@ export default function ActivityPage({ route }) {
           },
           {
             text: "Yes",
-            onPress: () => manageTask.changeLocation(task.id, null),
+            onPress: () => {
+              manageTask.changeLocation(task.id, null);
+              if (!task.datetime && notify) handleNotifyToggle();
+            },
           },
         ]
       );
@@ -118,7 +134,10 @@ export default function ActivityPage({ route }) {
         },
         {
           text: "Yes",
-          onPress: () => manageTask.changeDate(task.id, null),
+          onPress: () => {
+            manageTask.changeDate(task.id, null);
+            if (!loc && notify) handleNotifyToggle();
+          },
         },
       ]);
     }
@@ -132,9 +151,10 @@ export default function ActivityPage({ route }) {
           id: id,
           task: { completed: value, datetime: new Date() },
         });
-        if (data.code == 200)
+        if (data.code == 200) {
           dispatch({ type: "toggle_completion", id: id, completed: value });
-        else toastr(data.status);
+          setCompleted(value);
+        } else toastr(data.status);
       } catch (error) {
         console.log(error);
       }
@@ -146,7 +166,7 @@ export default function ActivityPage({ route }) {
           task: { description: value },
         });
         if (data.code == 200)
-          dispatch({ type: "rename_task", id: id, name: value });
+          dispatch({ type: "rename_task", id: id, description: value });
         else toastr(data.status);
       } catch (error) {
         console.log(error);
@@ -155,8 +175,8 @@ export default function ActivityPage({ route }) {
     notifyToggle: async (id, value) => {
       try {
         data = await API.updateTask({
-          id: action.id,
-          task: { notify: action.notify },
+          id: id,
+          task: { notify: value },
         });
         if (data.code == 200)
           dispatch({ type: "toggle_notification", id: id, notify: value });
@@ -185,11 +205,16 @@ export default function ActivityPage({ route }) {
       try {
         data = await API.updateTask({
           id: id,
-          task: { location: value },
+          task: { location: JSON.stringify(value) },
         });
         if (data.code == 200) {
-          dispatch({ type: "change_location", id: id, location: value });
-          setTask({ ...task, location: value });
+          dispatch({
+            type: "change_location",
+            id: id,
+            location: JSON.stringify(value),
+          });
+          setTask({ ...task, location: JSON.stringify(value) });
+          setLoc(value);
         } else {
           toastr(data.status);
         }
@@ -231,6 +256,132 @@ export default function ActivityPage({ route }) {
     },
   };
 
+  function IconsTray() {
+    return (
+      <View
+        style={{
+          flexDirection: "row",
+          padding: SIZES.padding,
+          marginHorizontal: SIZES.margin,
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
+        <MaterialCommunityIcons
+          name={notify ? "bell" : "bell-off"}
+          style={{ margin: SIZES.margin }}
+          size={32}
+          color={notify ? COLORS.primary : COLORS.secondary}
+          onPress={handleNotifyToggle}
+        />
+        <MaterialIcons
+          name={completed ? "check-box" : "check-box-outline-blank"}
+          style={{ margin: SIZES.margin }}
+          size={32}
+          color={completed ? COLORS.primary : COLORS.secondary}
+          onPress={handleCompletedToggle}
+        />
+        {!task.datetime && (
+          <MaterialCommunityIcons
+            name={"calendar-remove"}
+            style={{ margin: SIZES.margin }}
+            size={32}
+            color={COLORS.secondary}
+            onPress={toggleCalendarClock}
+          />
+        )}
+        {!loc && (
+          <MaterialCommunityIcons
+            name={"pin-off"}
+            style={{ margin: SIZES.margin }}
+            size={32}
+            color={COLORS.secondary}
+            onPress={toggleMapModal}
+          />
+        )}
+        <MaterialCommunityIcons
+          name={"trash-can"}
+          style={{ margin: SIZES.margin }}
+          size={32}
+          color={COLORS.secondary}
+          onPress={() => manageTask.deleteTask(task.id)}
+        />
+      </View>
+    );
+  }
+
+  function AvailableDatetime() {
+    return (
+      <View style={styles.tabs}>
+        <TouchableOpacity
+          onPress={toggleCalendarClock}
+          onLongPress={removeDate}
+        >
+          <MaterialCommunityIcons
+            name="calendar-clock"
+            size={32}
+            style={{ margin: SIZES.margin }}
+            color={
+              notify && new Date(task.datetime) > new Date()
+                ? COLORS.primary
+                : COLORS.secondary
+            }
+          />
+        </TouchableOpacity>
+        <Text
+          style={{
+            marginHorizontal: SIZES.padding,
+            // marginVertical: SIZES.margin,
+            ...FONTS.p_regular,
+            // alignSelf: "flex-end",
+          }}
+        >
+          {date.toDateString() + ", "}
+          {date.getHours() > 12
+            ? (date.getHours() - 12).toString()
+            : date.getHours().toString()}
+          {":" + date.getMinutes().toString()}
+          {date.getHours() > 11 ? " PM" : " AM"}
+        </Text>
+      </View>
+    );
+  }
+
+  function AvailableLocation() {
+    return (
+      <View style={styles.tabs}>
+        <TouchableOpacity onPress={toggleMapModal} onLongPress={removeLocation}>
+          <MaterialIcons
+            name="location-pin"
+            size={32}
+            style={{ margin: SIZES.margin }}
+            color={
+              notify &&
+              (!task.datetime ||
+                (task.datetime && new Date(task.datetime) > new Date()))
+                ? COLORS.primary
+                : COLORS.secondary
+            }
+          />
+        </TouchableOpacity>
+        <Text
+          style={{
+            // flex: 1,
+            marginHorizontal: SIZES.padding,
+            ...FONTS.p_regular,
+            // alignContent: "flex-end",
+          }}
+        >
+          {loc.type
+            ? loc.type === "custom"
+              ? `Latitude: ${loc.latitude}\nLongitude: ${loc.longitude}`
+              : `nearby ${loc.type}`
+            : "Not Set"}
+        </Text>
+      </View>
+    );
+  }
+
   return (
     <>
       <Header screen={"Activity"} />
@@ -243,7 +394,7 @@ export default function ActivityPage({ route }) {
       />
       <LocateMap
         map={map}
-        location={task.location}
+        location={loc}
         close={() => setMap(false)}
         setLocation={setLocation}
       />
@@ -267,113 +418,37 @@ export default function ActivityPage({ route }) {
           setValue={setValue}
           setItems={setItems}
         />
-        <View
-          style={{
-            flexDirection: "row",
-            marginVertical: SIZES.padding,
-            marginHorizontal: SIZES.margin,
-            alignItems: "center",
-          }}
-        >
-          <Switch
-            trackColor={{ false: "#767577", true: "#81b0ff" }}
-            thumbColor={notify ? "#f5dd4b" : "#f4f3f4"}
-            ios_backgroundColor="#3e3e3e"
-            onValueChange={handleToggle}
-            value={notify}
-          />
-          <Text
-            style={{
-              ...FONTS.p_regular,
-              marginLeft: notify ? SIZES.margin : 0,
-            }}
-          >
-            {notify ? "Alarm On" : "Alarm Off"}
-          </Text>
-        </View>
-        <View style={styles.tabs}>
-          <TouchableOpacity
-            onPress={toggleCalendarClock}
-            onLongPress={removeDate}
-          >
-            <MaterialCommunityIcons
-              name="calendar-clock"
-              size={32}
-              color={
-                notify && task.datetime && new Date(task.datetime) > new Date()
-                  ? COLORS.accent
-                  : COLORS.secondary
-              }
-            />
-          </TouchableOpacity>
-          <Text style={{ marginHorizontal: SIZES.padding, ...FONTS.p_regular }}>
-            {task.datetime
-              ? date.toDateString() + "\n" + date.toTimeString()
-              : "Not Set"}
-          </Text>
-        </View>
-        <View style={styles.tabs}>
-          <TouchableOpacity
-            onPress={() => setMap(true)}
-            onLongPress={removeLocation}
-          >
-            <MaterialIcons
-              name="location-pin"
-              size={32}
-              color={
-                notify &&
-                task.location &&
-                (!task.datetime ||
-                  (task.datetime && new Date(task.datetime) > new Date()))
-                  ? COLORS.accent
-                  : COLORS.secondary
-              }
-            />
-          </TouchableOpacity>
-          <Text style={{ marginHorizontal: SIZES.padding, ...FONTS.p_regular }}>
-            {task.location
-              ? task.location.type === "custom"
-                ? `Latitude: ${task.location.latitude}\nLongitude: ${task.location.longitude}`
-                : `nearby ${task.location.type}`
-              : "Not Set"}
-          </Text>
-        </View>
-        <View
-          style={{
-            marginTop: SIZES.padding,
-            marginHorizontal: SIZES.padding,
-            padding: SIZES.padding,
-            backgroundColor: COLORS.accent,
-            borderRadius: SIZES.borderRadius,
-          }}
-        >
+
+        <View style={styles.activity}>
           <TextInput
             multiline={true}
             onChangeText={(text) => setName(text)}
+            onContentSizeChange={(event) =>
+              setHeight(event.nativeEvent.contentSize.height)
+            }
             style={{
               ...styles.textInput,
-              textDecorationLine: task.completed ? "line-through" : "none",
+              maxHeight: Math.min(
+                height,
+                Dimensions.get("window").height / 2.76
+              ),
             }}
             placeholder="Add New Task"
             placeholderTextColor={COLORS.secondary}
             value={name}
           />
-          <View
-            style={{
-              flexDirection: "row",
-              justifyContent: "flex-end",
-              // backgroundColor: COLORS.accent,
-              // marginHorizontal: SIZES.padding,
-            }}
-          >
-            {/* <TouchableOpacity
-                style={styles.button}
-                onPress={() => navigation.goBack()}
-              >
-                <Text style={{ ...FONTS.h2_bold, color: COLORS.primary }}>
-                  Cancel
-                </Text>
-              </TouchableOpacity> */}
+          <IconsTray />
+          {task.datetime && <AvailableDatetime />}
+          {loc && <AvailableLocation />}
+          <View style={styles.end}>
+            <TouchableOpacity
+              style={styles.button}
+              onPress={() => navigation.goBack()}
+            >
+              <Text style={{ ...FONTS.h2_bold, color: COLORS.primary }}>
+                Cancel
+              </Text>
+            </TouchableOpacity>
             <TouchableOpacity style={styles.button} onPress={handleEdit}>
               <Text style={{ ...FONTS.h2_bold, color: COLORS.primary }}>
                 Ok
@@ -397,10 +472,11 @@ const styles = new StyleSheet.create({
   textInput: {
     ...FONTS.h2_bold,
     backgroundColor: COLORS.accent,
-    marginTop: SIZES.padding,
-    marginHorizontal: SIZES.padding,
-    // padding: SIZES.padding,
-    // paddingRight: 0,
+    margin: SIZES.padding,
+    borderWidth: 2,
+    borderColor: COLORS.secondary,
+    padding: SIZES.padding,
+    borderRadius: SIZES.borderRadius,
     color: COLORS.secondary,
     textAlign: "justify",
   },
@@ -409,13 +485,10 @@ const styles = new StyleSheet.create({
     justifyContent: "center",
     height: "100%",
   },
-  container: {
-    backgroundColor: COLORS.primary,
-    // width: "75%",
-  },
   tabs: {
-    flexDirection: "row",
     // justifyContent: "space-between",
+    flexDirection: "row",
+    paddingHorizontal: SIZES.padding,
     margin: SIZES.padding,
     alignItems: "center",
   },
@@ -428,10 +501,25 @@ const styles = new StyleSheet.create({
   },
   dropdown: {
     backgroundColor: COLORS.accent,
-    paddingHorizontal: 20,
+    paddingHorizontal: SIZES.padding,
     margin: SIZES.margin,
     width: "96%",
     borderRadius: SIZES.borderRadius,
     borderWidth: 0,
+  },
+  activity: {
+    height: Dimensions.get("window").height / 1.3,
+    margin: SIZES.margin,
+    paddingHorizontal: SIZES.margin,
+    paddingVertical: SIZES.padding,
+    backgroundColor: COLORS.accent,
+    borderRadius: SIZES.borderRadius,
+  },
+  end: {
+    position: "absolute",
+    bottom: SIZES.margin,
+    right: 0,
+    flexDirection: "row",
+    justifyContent: "flex-end",
   },
 });

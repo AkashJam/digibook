@@ -1,5 +1,3 @@
-import { StatusBar, Platform, Dimensions } from "react-native";
-
 const COLORS = {
   primary: "rgb(0, 166, 251)", //Blue Jeans rgb(0, 166, 251)
   secondary: "#363635", //Jet
@@ -8,6 +6,7 @@ const COLORS = {
   orange: "#FF8200",
   yellow: "#D5A021", //GoldenRod
   green: "rgb(127,184,0)", //"#7FB800", //Apple Green     India Green rgb(62, 137, 20)
+  modal: "rgb(28,115,180)",
 };
 
 const SIZES = {
@@ -34,12 +33,7 @@ const SHADOW = {
 };
 
 const PAGE = {
-  paddingTop:
-    // Platform.OS === "ios"
-    //   ? 40
-    //   : StatusBar.currentHeight > 30
-    //   ? StatusBar.currentHeight + 10
-    90,
+  paddingTop: 90,
   height: "100%",
   backgroundColor: COLORS.primary,
   paddingHorizontal: SIZES.padding,

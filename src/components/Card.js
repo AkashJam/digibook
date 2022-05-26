@@ -1,13 +1,14 @@
 import React, { useState } from "react";
 import { View, Text, StyleSheet, Pressable, Dimensions } from "react-native";
 import { COLORS, SIZES, FONTS, SHADOW } from "../constants";
-import { MaterialIcons, Ionicons } from "@expo/vector-icons";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { SwipeRow } from "react-native-swipe-list-view";
 
 export default function Card(props) {
   const [height, setHeight] = useState(0);
   const swipeDist = Dimensions.get("window").width / 4;
   const [backColor, setColor] = useState(COLORS.primary);
+  const [notify, setNotify] = useState(props.task.notify);
   const [active, setActive] = useState(false);
 
   let backCount = 0;
@@ -19,7 +20,10 @@ export default function Card(props) {
       props.setEdit(props.task.id);
     }
     const backTimer = setTimeout(() => {
-      if (backCount === 1) props.notifyToggle(props.task.id, props.task.notify);
+      if (backCount === 1) {
+        props.notifyToggle(props.task.id, !notify);
+        setNotify(!notify);
+      }
       backCount = 0;
     }, 500);
   };
@@ -27,7 +31,10 @@ export default function Card(props) {
   const swipeEnd = (key, data) => {
     if (data.translateX < -swipeDist) props.deleteTask(props.task.id);
     else if (data.translateX > swipeDist)
-      setTimeout(() => props.setCompleted(props.task.id,!props.task.completed), 500);
+      setTimeout(
+        () => props.setCompleted(props.task.id, !props.task.completed),
+        500
+      );
   };
 
   function onSwipeValueChange(swipeData) {
@@ -46,23 +53,13 @@ export default function Card(props) {
   }
 
   function NotifyIcon() {
-    if (props.task.notify) {
-      return (
-        <Ionicons
-          name="alarm"
-          size={28}
-          color={active ? COLORS.secondary : COLORS.accent}
-        />
-      );
-    } else {
-      return (
-        <MaterialIcons
-          name="alarm-off"
-          size={28}
-          color={props.task.notify ? COLORS.accent : COLORS.primary}
-        />
-      );
-    }
+    return (
+      <MaterialCommunityIcons
+        name={props.task.notify ? "bell" : "bell-off"}
+        size={FONTS.h1_bold.fontSize}
+        color={props.task.notify ? COLORS.accent : COLORS.primary}
+      />
+    );
   }
 
   return (

@@ -189,7 +189,7 @@ const reducer = (state, action) => {
       toastr("Location changed.");
       return obj;
 
-    case "toggle_notifications":
+    case "toggle_notification":
       log = state.activities.map((activity) => {
         if (activity.id === action.id) {
           return {
@@ -287,9 +287,18 @@ const reducer = (state, action) => {
 
     // locations
     case "set_location":
-      obj = state.locations?state.locations:{};
-      obj.lat = action.lat;
-      obj.lon = action.lon;
+      obj = state.locations ? state.locations : {};
+      if (
+        Math.abs(obj.latitude - action.latitude) < 0.01 &&
+        Math.abs(obj.longitude - action.longitude) < 0.01
+      ) {
+        if (Object.keys(obj).length !== 0)
+          Object.keys(obj).forEach((e) => {
+            if (e !== "latitude" && e !== "longitude") obj[e] = [];
+          });
+        obj.latitude = action.latitude;
+        obj.longitude = action.longitude;
+      }
       obj[`${action.use}`] = action.location;
       storeUserLog({ ...state, locations: obj });
       return { ...state, locations: obj };

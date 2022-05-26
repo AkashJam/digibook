@@ -8,18 +8,19 @@ import {
   TouchableWithoutFeedback,
 } from "react-native";
 import { COLORS, SIZES, FONTS, PAGEHEAD } from "../../constants/index";
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useContext } from "react";
 import MapView, { Marker } from "react-native-maps";
 import DropDownPicker from "react-native-dropdown-picker";
 import * as Location from "expo-location";
 import { UserContext, toastr } from "../../globalvars";
+import { ActivityIndicator } from "react-native";
 
 const searchDistance = 0.02;
 
 export default function LocateMap(props) {
-  const [state, dispatch] = React.useContext(UserContext);
+  const [state, dispatch] = useContext(UserContext);
   const [coordinates, setCoordinates] = useState(
-    props.location
+    props.location && props.location.latitude && props.location.longitude
       ? {
           latitude: props.location.latitude,
           longitude: props.location.longitude,
@@ -29,7 +30,7 @@ export default function LocateMap(props) {
 
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState(
-    props.location ? props.location.type : "custom"
+    props.location && props.location.type ? props.location.type : "custom"
   );
   const categories = [
     { label: "Custom", value: "custom" },
@@ -42,100 +43,110 @@ export default function LocateMap(props) {
     { label: "Post Office", value: "post_office" },
   ];
   const [items, setItems] = useState(categories);
+  const [isLoading, setLoading] = useState(false);
 
-  const location = useRef(null);
   const name = useRef("You are here");
 
   useEffect(() => {
     (async () => {
-      let { status } = await Location.requestBackgroundPermissionsAsync();
+      let { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
         console.log("Permission to access location was denied");
       } else {
-        location.current = await Location.getCurrentPositionAsync({});
-        if (!coordinates) {
-          setCoordinates({
-            latitude: location.current.coords.latitude,
-            longitude: location.current.coords.longitude,
-          });
-        }
+        await Location.getCurrentPositionAsync({}).then((currentLocation) => {
+          if (value === "custom") {
+            name.current = "You are here";
+            setCoordinates({
+              latitude: currentLocation.coords.latitude,
+              longitude: currentLocation.coords.longitude,
+            });
+          } else {
+            setLoading(true);
+            if (
+              state.locations &&
+              state.locations.lat &&
+              state.locations.lon &&
+              (Math.abs(
+                state.locations.lat - currentLocation.coords.latitude
+              ) >= searchDistance ||
+                Math.abs(
+                  state.locations.lon - currentLocation.coords.longitude
+                ) >= searchDistance) &&
+              state.locations[`${value}`] !== undefined &&
+              state.locations[`${value}`].length !== 0
+            ) {
+              const loc_data = state.locations[`${value}`];
+              const stored_loc = nearestPoint(loc_data, currentLocation);
+              setCoordinates(stored_loc);
+            } else {
+              let type = value === "supermarket" ? "shop" : "amenity";
+              fetch(
+                `http://www.overpass-api.de/api/interpreter?data=[out:json];node
+                  ["${type}"=${value}]
+                  (${currentLocation.coords.latitude - searchDistance},${
+                  currentLocation.coords.longitude - searchDistance
+                },${currentLocation.coords.latitude + searchDistance},${
+                  currentLocation.coords.longitude + searchDistance
+                });
+                  out;`
+              )
+                .then((response) => response.json())
+                .then((data) => {
+                  if (data.elements.length !== 0) {
+                    const API_data = data.elements.map((element) => {
+                      return {
+                        id: element.id,
+                        latitude: element.lat,
+                        longitude: element.lon,
+                        name: element.tags.name,
+                      };
+                    });
+                    dispatch({
+                      type: "set_location",
+                      latitude: currentLocation.coords.latitude,
+                      longitude: currentLocation.coords.longitude,
+                      location: API_data,
+                      use: value,
+                    });
+                    const API_loc = nearestPoint(API_data, currentLocation);
+                    setCoordinates(API_loc);
+                  }
+                });
+            }
+            setLoading(false);
+          }
+        });
       }
     })();
-  }, [coordinates]);
-
-  useEffect(() => {
-    // console.log(location.current);
-    if (value !== "custom" && location.current) {
-      if (
-        state.locations &&
-        state.locations.lat &&
-        state.locations.lon &&
-        (Math.abs(state.locations.lat - location.current.coords.latitude) >=
-          searchDistance ||
-          Math.abs(state.locations.lon - location.current.coords.lon) >=
-            searchDistance) &&
-        state.locations[`${value}`] !== undefined &&
-        state.locations[`${value}`].length !== 0
-      ) {
-        const loc_data = state.locations[`${value}`];
-        const stored_loc = nearestPoint(loc_data);
-        setCoordinates(stored_loc);
-      } else {
-        let type = value === "supermarket" ? "shop" : "amenity";
-        fetch(
-          `http://www.overpass-api.de/api/interpreter?data=[out:json];node
-          ["${type}"=${value}]
-          (${location.current.coords.latitude - searchDistance},${
-            location.current.coords.longitude - searchDistance
-          },${location.current.coords.latitude + searchDistance},${
-            location.current.coords.longitude + searchDistance
-          });
-          out;`
-        )
-          .then((response) => response.json())
-          .then((data) => {
-            if (data.elements.length !== 0) {
-              const API_data = data.elements.map((element) => {
-                return {
-                  id: element.id,
-                  lat: element.lat,
-                  lon: element.lon,
-                  name: element.tags.name,
-                };
-              });
-              dispatch({
-                type: "set_location",
-                lat: location.current.coords.latitude,
-                lon: location.current.coords.longitude,
-                location: API_data,
-                use: value,
-              });
-              const API_loc = nearestPoint(API_data);
-              setCoordinates(API_loc);
-            }
-          });
-      }
-    }
   }, [value]);
 
   const changeLocation = () => {
-    props.setLocation({ type: value, ...coordinates });
+    // console.log({ type: value, ...coordinates });
+    if (
+      !props.location ||
+      (props.location &&
+        (props.location.type !== value ||
+          props.location.latitude !== coordinates.latitude ||
+          props.location.longitude !== coordinates.longitude))
+    )
+      props.setLocation({ type: value, ...coordinates });
+    else props.close();
   };
 
-  function nearestPoint(data) {
+  function nearestPoint(data, loc) {
     let lat = 0;
     let lon = 0;
-    let delta = 100;
+    let delta = 3;
     for (let i = 0; i < data.length; i++) {
       let deltaTest = distance(
-        data[i].lat,
-        location.current.coords.latitude,
-        data[i].lon,
-        location.current.coords.longitude
+        data[i].latitude,
+        loc.coords.latitude,
+        data[i].longitude,
+        loc.coords.longitude
       );
       if (delta > deltaTest) {
-        lat = data[i].lat;
-        lon = data[i].lon;
+        lat = data[i].latitude;
+        lon = data[i].longitude;
         delta = deltaTest;
         name.current = data[i].name;
         // console.log("closer", data);
@@ -171,119 +182,120 @@ export default function LocateMap(props) {
     return c * r;
   }
 
-  if (!props.map) {
-    return null;
-  } else {
+  function Map() {
     return (
-      <View style={styles.overlay}>
-        <Modal
-          animationType="fade"
-          transparent={true}
-          visible={props.map}
-          onRequestClose={() => props.close()}
+      <MapView
+        style={styles.map}
+        zoomControlEnabled={true}
+        region={{
+          latitude: coordinates.latitude,
+          longitude: coordinates.longitude,
+          latitudeDelta: 0.012,
+          longitudeDelta: 0.006,
+        }}
+      >
+        <Marker
+          draggable
+          pinColor="rgb(28,115,180)"
+          title={name.current}
+          coordinate={coordinates}
+          onDragEnd={(e) => setCoordinates(e.nativeEvent.coordinate)}
+        />
+      </MapView>
+    );
+  }
+
+  function Popup() {
+    return (
+      <View
+        style={{
+          backgroundColor: COLORS.modal,
+          borderRadius: 5,
+          overflow: "hidden",
+        }}
+      >
+        <Text
+          style={{
+            ...PAGEHEAD,
+            marginHorizontal: SIZES.padding,
+            marginTop: SIZES.padding,
+          }}
         >
-          <TouchableOpacity
-            activeOpacity={1}
-            style={{ height: "100%", width: "100%" }}
-            onPress={() => props.close()}
-          >
-            <View style={styles.modal}>
-              <TouchableWithoutFeedback>
-                <View
-                  style={{
-                    backgroundColor: "rgba(28,115,180,255)",
-                    borderRadius: 5,
-                    overflow: "hidden",
-                  }}
-                >
-                  <Text
-                    style={{
-                      ...PAGEHEAD,
-                      marginHorizontal: SIZES.padding,
-                      marginTop: SIZES.padding,
-                    }}
-                  >
-                    Location
-                  </Text>
-                  <View
-                    style={{
-                      width: "100%",
-                      padding: SIZES.padding,
-                      justifyContent: "center",
-                    }}
-                  >
-                    <DropDownPicker
-                      style={styles.dropdown}
-                      dropDownContainerStyle={styles.container}
-                      textStyle={{
-                        color: COLORS.secondary,
-                        ...FONTS.h2_bold,
-                      }}
-                      listItemLabelStyle={FONTS.p_regular}
-                      searchTextInputStyle={FONTS.p_regular}
-                      searchable={true}
-                      searchPlaceholder="Enter a group name"
-                      addCustomItem={true}
-                      open={open}
-                      value={value}
-                      items={items}
-                      setOpen={setOpen}
-                      setValue={setValue}
-                      setItems={setItems}
-                    />
-                  </View>
-                  {coordinates && (
-                    <MapView
-                      style={styles.map}
-                      zoomControlEnabled={true}
-                      region={{
-                        latitude: coordinates.latitude,
-                        longitude: coordinates.longitude,
-                        latitudeDelta: 0.012,
-                        longitudeDelta: 0.006,
-                      }}
-                    >
-                      <Marker
-                        draggable
-                        pinColor="rgb(28,115,180)"
-                        title={name.current}
-                        coordinate={coordinates}
-                        onDragEnd={(e) =>
-                          setCoordinates(e.nativeEvent.coordinate)
-                        }
-                      />
-                    </MapView>
-                  )}
-                  <View style={styles.bottom}>
-                    <TouchableOpacity
-                      style={styles.button}
-                      onPress={props.close}
-                    >
-                      <Text
-                        style={{ ...FONTS.h2_bold, color: "rgb(28,115,180)" }}
-                      >
-                        Cancel
-                      </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={styles.button}
-                      onPress={changeLocation}
-                    >
-                      <Text
-                        style={{ ...FONTS.h2_bold, color: "rgb(28,115,180)" }}
-                      >
-                        Ok
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </TouchableWithoutFeedback>
-            </View>
+          Location
+        </Text>
+        <View
+          style={{
+            width: "100%",
+            padding: SIZES.padding,
+            justifyContent: "center",
+          }}
+        >
+          <DropDownPicker
+            style={styles.dropdown}
+            dropDownContainerStyle={styles.container}
+            textStyle={{
+              color: COLORS.secondary,
+              ...FONTS.h2_bold,
+            }}
+            listItemLabelStyle={FONTS.p_regular}
+            searchTextInputStyle={FONTS.p_regular}
+            searchable={true}
+            searchPlaceholder="Enter a group name"
+            addCustomItem={true}
+            open={open}
+            value={value}
+            items={items}
+            setOpen={setOpen}
+            setValue={setValue}
+            setItems={setItems}
+          />
+        </View>
+        {coordinates && <Map />}
+        <View style={styles.bottom}>
+          <TouchableOpacity style={styles.button} onPress={props.close}>
+            <Text style={{ ...FONTS.h2_bold, color: "rgb(28,115,180)" }}>
+              Cancel
+            </Text>
           </TouchableOpacity>
-        </Modal>
+          <TouchableOpacity style={styles.button} onPress={changeLocation}>
+            <Text style={{ ...FONTS.h2_bold, color: "rgb(28,115,180)" }}>
+              Ok
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
     );
   }
+
+  if (!props.map) return <></>;
+
+  return (
+    <View style={styles.overlay}>
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={props.map}
+        onRequestClose={() => props.close()}
+      >
+        <TouchableOpacity
+          activeOpacity={1}
+          style={{ height: "100%", width: "100%" }}
+          onPress={() => props.close()}
+        >
+          {isLoading && (
+            <View style={styles.activity}>
+              <ActivityIndicator size={100} color={COLORS.primary} />
+            </View>
+          )}
+          <View style={styles.modal}>
+            <TouchableWithoutFeedback>
+              <Popup />
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+    </View>
+  );
 }
 
 const styles = new StyleSheet.create({
@@ -340,5 +352,17 @@ const styles = new StyleSheet.create({
     width: "80%",
     borderRadius: SIZES.borderRadius,
     borderWidth: 0,
+  },
+  activity: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    height: Dimensions.get("window").height,
+    width: Dimensions.get("window").width,
+    alignItems: "center",
+    justifyContent: "center",
+    elevation: 5,
+    zIndex: 5,
+    backgroundColor: "rgba(0,0,0,0.3)",
   },
 });

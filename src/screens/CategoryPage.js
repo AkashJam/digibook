@@ -87,8 +87,8 @@ export default function CategoryPage() {
     notifyToggle: async (id, value) => {
       try {
         data = await API.updateTask({
-          id: action.id,
-          task: { notify: action.notify },
+          id: id,
+          task: { notify: value },
         });
         if (data.code == 200)
           dispatch({ type: "toggle_notification", id: id, notify: value });
