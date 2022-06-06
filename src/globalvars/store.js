@@ -44,7 +44,7 @@ const reducer = (state, action) => {
       );
       return obj;
 
-    case "update_user_name":
+    case "update_display_name":
       // obj = await API.updateUser({
       //   id: state.id,
       //   task: { display_name: action.displayName },
@@ -53,7 +53,7 @@ const reducer = (state, action) => {
       obj = {
         id: state.id,
         username: state.username,
-        displayName: action.user.displayName,
+        displayName: action.displayName,
         range: state.range,
         collaborators: action.collaborators,
         groups: state.groups,
@@ -95,14 +95,13 @@ const reducer = (state, action) => {
     //activities
     case "add_task":
       const newTask = {
-        id: obj.id,
+        id: action.id,
         description: action.description,
         group_id: action.group_id,
         notify: false,
         location: null,
         datetime: action.datetime !== undefined ? action.datetime : null,
         completed: false,
-        active: true,
         createdOn: new Date().toString(),
         modifiedOn: null,
       };
@@ -229,9 +228,8 @@ const reducer = (state, action) => {
     // groups
     case "add_group":
       let newGroup = {
-        id: obj.id,
+        id: action.id,
         name: action.name,
-        active: true,
         createdOn: new Date().toString(),
         modifiedOn: null,
       };

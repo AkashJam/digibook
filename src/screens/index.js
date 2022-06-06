@@ -1,7 +1,6 @@
 import HomePage from "./HomePage";
 import { UserProvider } from "../globalvars";
 import AuthPage from "./AuthPage";
-import { UserNotifications } from "../components";
 import SettingsPage from "./SettingsPage";
 import ActivityPage from "./ActivityPage";
 import CategoryPage from "./CategoryPage";
@@ -17,11 +16,11 @@ function StackNav() {
         headerShown: false,
       }}
     >
-      {/* <Stack.Screen name="Settings" component={SettingsPage} /> */}
       <Stack.Screen name="Auth" component={AuthPage} />
       <Stack.Screen name="Home" component={HomePage} />
       <Stack.Screen name="Categories" component={CategoryPage} />
       <Stack.Screen name="Activity" component={ActivityPage} />
+      <Stack.Screen name="Settings" component={SettingsPage} />
     </Stack.Navigator>
   );
 }
@@ -31,7 +30,6 @@ export default function UI() {
     <UserProvider>
       <NavigationContainer>
         <StackNav />
-        <UserNotifications />
       </NavigationContainer>
     </UserProvider>
   );

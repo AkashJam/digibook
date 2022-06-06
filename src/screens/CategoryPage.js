@@ -14,6 +14,7 @@ import DropDownPicker from "react-native-dropdown-picker";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { Card, ControlButton, Header } from "../components";
 import { useNavigation } from "@react-navigation/native";
+import { Octicons } from "@expo/vector-icons";
 
 export default function CategoryPage() {
   const navigation = useNavigation();
@@ -26,8 +27,9 @@ export default function CategoryPage() {
     categories.push({ label: element.name, value: element.id });
   });
   const [items, setItems] = useState(categories);
+  // console.log(value);
 
-  let data = {}
+  let data = {};
   const addTask = async (taskName) => {
     try {
       data = await API.createTask({
@@ -36,9 +38,11 @@ export default function CategoryPage() {
           description: taskName,
         },
       });
+      console.log(data)
       if (data.code == 200)
         dispatch({
           type: "add_task",
+          id: data.id,
           description: taskName,
           group_id: value,
         });
@@ -54,20 +58,27 @@ export default function CategoryPage() {
         id: state.id,
         group: { name: groupName },
       });
-      if (data.code == 200)
+      console.log(data);
+      if (data.code == 200) {
         dispatch({
           type: "add_group",
           name: groupName,
+          id: data.id,
         });
-      else toastr(data.status);
+        let updatedList = items;
+        updatedList[updatedList.length - 1].value = data.id;
+        setItems(updatedList);
+      } else toastr(data.status);
     } catch (error) {
       console.log(error);
     }
   };
 
   useEffect(() => {
-    if (items.length - 1 > state.groups.filter((group) => group.active).length)
+    if (items.length > state.groups.length) {
+      console.log(state.groups.length);
       addGroup(items[items.length - 1].label);
+    }
   }, [items]);
 
   const manageTask = {
@@ -141,10 +152,11 @@ export default function CategoryPage() {
           setValue={setValue}
           setItems={setItems}
         />
+        <Octicons name="kebab-horizontal" size={32} color={COLORS.accent} style={{paddingHorizontal: SIZES.padding}} />
         <GestureHandlerRootView style={{ flex: 1, marginVertical: 20 }}>
           <FlatList
             data={state.activities.filter(
-              (task) => value === def[0].id || task.group === value
+              (task) => value === def[0].id || task.group_id === value
             )}
             renderItem={({ item, index }) => (
               <Card

@@ -9,7 +9,7 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { Card, ControlButton, Testcomp, Header } from "../components";
+import { Card, ControlButton, Testcomp, Header, UserNotifications } from "../components";
 import { COLORS, SIZES, FONTS, SHADOW, PAGE, PAGEHEAD } from "../constants";
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
@@ -71,6 +71,7 @@ export default function HomePage({ navigation }) {
       if (data.code == 200)
         dispatch({
           type: "add_task",
+          id: data.id,
           description: taskName,
           datetime: date.toString(),
           group_id: defGroup[0].id,
@@ -289,6 +290,7 @@ export default function HomePage({ navigation }) {
         </GestureHandlerRootView>
       </View>
       <ControlButton addTask={addTask} />
+      <UserNotifications />
     </>
   );
 }

@@ -2,7 +2,7 @@ import Toast from "react-native-root-toast";
 import API from "./api";
 import { UserContext, UserProvider } from "./store";
 
-const toastTime = 5000;
+const toastTime = 8000;
 
 const toastr = (msg, duration = toastTime) => {
   // Add a Toast on screen.

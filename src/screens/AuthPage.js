@@ -109,12 +109,12 @@ export default function AuthPage({ navigation }) {
         toastr("Login error.");
       }
     } else {
-      if (code == 406) {
-        setCanLogin(false);
-        setCanRegister(false);
-        setUserColor(COLORS.red);
-        setPwdColor(COLORS.red);
-      }
+      // if (code == 406) {
+      //   setCanLogin(false);
+      //   setCanRegister(false);
+      // }
+      setUserColor(COLORS.red);
+      setPwdColor(COLORS.red);
       setLoading(false);
       setCanLogin(false);
       toastr(data.status);
@@ -183,6 +183,8 @@ export default function AuthPage({ navigation }) {
         toastr("Registration error.", 5000);
       }
     } else {
+      setUserColor(COLORS.red);
+      setPwdColor(COLORS.red);
       setLoading(false);
       setCanRegister(false);
       toastr(data.status, 5000);
@@ -289,6 +291,9 @@ export default function AuthPage({ navigation }) {
           REGISTER
         </Text>
       </TouchableOpacity>
+      <Text style={styles.info}>
+        First time? Get started with just a username and password
+      </Text>
     </View>
   );
 }
@@ -331,5 +336,12 @@ const styles = new StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     elevation: 5,
+  },
+  info: {
+    ...FONTS.p_regular,
+    color: COLORS.accent,
+    paddingHorizontal: "10%",
+    paddingVertical: "15%",
+    textAlign: "center",
   },
 });

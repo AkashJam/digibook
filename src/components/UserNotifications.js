@@ -13,138 +13,134 @@ const notify = (datalog) => {
   const data = JSON.parse(datalog);
   const activities = data.activities.filter(
     (activity) =>
-      activity.notify &&
-      ((activity.datetime === null && activity.location) ||
-        new Date(activity.datetime).toDateString() ===
-          new Date().toDateString())
+      (activity.notify &&
+        activity.notified === undefined &&
+        activity.datetime === null &&
+        activity.location) ||
+      new Date(activity.datetime).toDateString() === new Date().toDateString()
   );
-  if (activities.length !== 0) {
-    activities.forEach(async (activity) => {
-      if (activity.datetime) {
-        const timer = Math.abs(new Date(activity.datetime) - new Date()) / 1000;
-        if (300 < timer && timer < 900) {
-          // If notification timer is in less than 15 minutes
-          registerForPushNotificationsAsync();
-          await schedulePushNotification(
-            activity.description,
-            activity.datetime.toTimeString()
-          );
-        }
-      } else {
-        // if (activity.completed) return false;
-        console.log("there is a location");
-        let { status } = await Location.requestBackgroundPermissionsAsync();
-        if (status !== "granted") {
-          console.log("Permission to access location was denied");
-        } else {
-          await Location.getCurrentPositionAsync({}).then(async (loc) => {
-            console.log(
-              typeof activity.location,
-              activity.location,
-              typeof data.locations
-            );
-            const act_loc = JSON.parse(activity.location);
-            // const locations = JSON.parse(data.locations);
-            if (act_loc.type !== "custom") {
-              const searchDistance = 0.02;
-              if (
-                data.locations &&
-                data.locations.latitude &&
-                data.locations.longitude &&
-                Math.abs(data.locations.latitude - loc.coords.latitude) <=
-                  searchDistance / 2 &&
-                Math.abs(data.locations.longitude - loc.coords.longitude) <=
-                  searchDistance / 2 &&
-                data.locations[`${act_loc.type}`] !== undefined &&
-                data.locations[`${act_loc.type}`].length !== 0
-              ) {
-                const places = nearestPoint(
-                  data.locations[`${act_loc.type}`],
-                  loc,
-                  data.range
-                );
-                if (places.length !== 0) {
-                  registerForPushNotificationsAsync();
-                  await schedulePushNotification(
-                    activity.description,
-                    act_loc.type
-                  );
-                }
-              } else {
-                let type = act_loc.type === "supermarket" ? "shop" : "amenity";
-                fetch(
-                  `http://www.overpass-api.de/api/interpreter?data=[out:json];node
-                  ["${type}"=${act_loc.type}]
-                  (${loc.coords.latitude - searchDistance},${
-                    loc.coords.longitude - searchDistance
-                  },${loc.coords.latitude + searchDistance},${
-                    loc.coords.longitude + searchDistance
-                  });
-                  out;`
-                )
-                  .then((response) => response.json())
-                  .then(async (API_resp) => {
-                    if (API_resp.elements.length !== 0) {
-                      const API_data = API_resp.elements.map((element) => {
-                        return {
-                          id: element.id,
-                          latitude: element.lat,
-                          longitude: element.lon,
-                          name: element.tags.name,
-                        };
-                      });
-                      if (Object.keys(data.locations).length !== 0)
-                        Object.keys(data.locations).forEach((e) => {
-                          if (e !== "lat" && e !== "lon")
-                            data.locations[e] = [];
-                        });
-                      if (
-                        !(
-                          data.locations &&
-                          data.locations.latitude &&
-                          data.locations.longitude &&
-                          (Math.abs(
-                            data.locations.latitude - loc.coords.latitude
-                          ) <=
-                            searchDistance / 2 ||
-                            Math.abs(
-                              data.locations.longitude - loc.coords.longitude
-                            ) <=
-                              searchDistance / 2)
-                        )
-                      ) {
-                        data.locations.latitude = loc.coords.latitude;
-                        data.locations.longitude = loc.coords.longitude;
-                      }
-                      data.locations[`${act_loc.type}`] = API_data.location;
-                      AsyncStorage.setItem(`DN_userlog`, JSON.stringify(data));
-                      const places = nearestPoint(API_data, loc, data.range);
-                      if (places.length !== 0) {
-                        registerForPushNotificationsAsync();
-                        await schedulePushNotification(
-                          activity.description,
-                          act_loc.type
-                        );
-                      }
-                    }
-                  });
-              }
-            } else {
-              console.log(activity);
-              const places = nearestPoint([act_loc], loc, data.range);
-              if (places.length !== 0) {
-                registerForPushNotificationsAsync();
-                await schedulePushNotification(
-                  activity.description,
-                  act_loc.type
-                );
-              }
-            }
-          });
-        }
+  if (activities.length === 0) return null;
+
+  activities.forEach(async (activity) => {
+    if (activity.datetime) {
+      const timer = Math.abs(new Date(activity.datetime) - new Date()) / 60000;
+      if (5 < timer && timer < 15) {
+        // If notification timer is in less than 15 minutes
+        registerForPushNotificationsAsync();
+        await schedulePushNotification(
+          activity.description,
+          Math.floor(timer).toString(),
+          "time"
+        );
+        markNotified(data, activity.id);
       }
-    });
-  }
+    } else {
+      let { status } = await Location.requestBackgroundPermissionsAsync();
+      if (status !== "granted") return null;
+      await Location.getCurrentPositionAsync().then(async (currentLoc) => {
+        const act_loc = JSON.parse(activity.location);
+        const searchDistance = 0.02;
+        if (act_loc.type !== "custom") {
+          if (
+            data.locations &&
+            data.locations.latitude &&
+            data.locations.longitude &&
+            Math.abs(data.locations.latitude - currentLoc.coords.latitude) <=
+              searchDistance / 2 &&
+            Math.abs(data.locations.longitude - currentLoc.coords.longitude) <=
+              searchDistance / 2 &&
+            data.locations[`${act_loc.type}`] !== undefined &&
+            data.locations[`${act_loc.type}`].length !== 0
+          ) {
+            const places = nearestPoint(
+              data.locations[`${act_loc.type}`],
+              currentLoc,
+              data.range
+            );
+            if (places.length !== 0) {
+              registerForPushNotificationsAsync();
+              await schedulePushNotification(
+                activity.description,
+                places[places.length - 1].distance.toString(),
+                "loc"
+              );
+              markNotified(data, activity.id);
+            }
+          } else {
+            let type = act_loc.type === "supermarket" ? "shop" : "amenity";
+            fetch(
+              `http://www.overpass-api.de/api/interpreter?data=[out:json];node
+                  ["${type}"=${act_loc.type}]
+                  (${currentLoc.coords.latitude - searchDistance},${
+                currentLoc.coords.longitude - searchDistance
+              },${currentLoc.coords.latitude + searchDistance},${
+                currentLoc.coords.longitude + searchDistance
+              });
+                  out;`
+            )
+              .then((response) => response.json())
+              .then(async (API_resp) => {
+                if (API_resp.elements.length !== 0) {
+                  const API_data = API_resp.elements.map((element) => {
+                    return {
+                      id: element.id,
+                      latitude: element.lat,
+                      longitude: element.lon,
+                      name: element.tags.name,
+                    };
+                  });
+                  if (Object.keys(data.locations).length !== 0)
+                    Object.keys(data.locations).forEach((e) => {
+                      if (e !== "lat" && e !== "lon") data.locations[e] = [];
+                    });
+                  if (
+                    !(
+                      data.locations &&
+                      data.locations.latitude &&
+                      data.locations.longitude &&
+                      (Math.abs(
+                        data.locations.latitude - loc.coords.latitude
+                      ) <=
+                        searchDistance / 2 ||
+                        Math.abs(
+                          data.locations.longitude - loc.coords.longitude
+                        ) <=
+                          searchDistance / 2)
+                    )
+                  ) {
+                    data.locations.latitude = loc.coords.latitude;
+                    data.locations.longitude = loc.coords.longitude;
+                  }
+                  data.locations[`${act_loc.type}`] = API_data;
+                  AsyncStorage.setItem(`DN_userlog`, JSON.stringify(data));
+                  let places = nearestPoint(API_data, currentLoc, data.range);
+                  if (places.length !== 0) {
+                    registerForPushNotificationsAsync();
+                    await schedulePushNotification(
+                      activity.description,
+                      places[places.length - 1].distance.toString(),
+                      "loc"
+                    );
+                    markNotified(data, activity.id);
+                  }
+                }
+              });
+          }
+        } else {
+          const places = nearestPoint([act_loc], currentLoc, data.range);
+          if (places.length !== 0) {
+            registerForPushNotificationsAsync();
+            await schedulePushNotification(
+              activity.description,
+              places[places.length - 1].distance.toString(),
+              "loc"
+            );
+            markNotified(data, activity.id);
+          }
+        }
+      });
+    }
+  });
 };
 
 function nearestPoint(data, location, range) {
@@ -160,7 +156,8 @@ function nearestPoint(data, location, range) {
     );
     console.log("distance", deltaTest);
     if (delta > deltaTest) {
-      places.push(data[i]);
+      delta = deltaTest;
+      places.push({ ...data[i], distance: delta });
     }
   }
 
@@ -188,6 +185,15 @@ function distance(lat1, lat2, lon1, lon2) {
   return c * r;
 }
 
+function markNotified(data, id) {
+  data.activities = data.activities.map((task) => {
+    if (task.id === id) task.notified = false;
+    return task;
+  });
+  console.log(data);
+  AsyncStorage.setItem(`DN_userlog`, JSON.stringify(data));
+}
+
 // 1. Define the task by providing a name and the function that should be executed
 // Note: This needs to be called in the global scope (e.g outside of your React components)
 TaskManager.defineTask(BACKGROUND_FETCH_TASK, async () => {
@@ -209,16 +215,30 @@ Notifications.setNotificationHandler({
   }),
 });
 
-async function schedulePushNotification(description, notificationTrigger) {
-  console.log(description, notificationTrigger);
-  await Notifications.scheduleNotificationAsync({
-    content: {
-      title: description,
-      body: notificationTrigger,
-      // data: { data: data },
-    },
-    trigger: { seconds: 2 },
-  });
+async function schedulePushNotification(
+  description,
+  notificationTrigger,
+  type
+) {
+  console.log(description, notificationTrigger, type);
+  if (type === "loc")
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: description,
+        body: notificationTrigger + "m away",
+        // data: { data: data },
+      },
+      trigger: { seconds: 2 },
+    });
+  else
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: description,
+        body: "in about " + notificationTrigger + " mins",
+        // data: { data: data },
+      },
+      trigger: { seconds: 2 },
+    });
 }
 
 async function registerForPushNotificationsAsync() {
@@ -253,24 +273,39 @@ async function registerForPushNotificationsAsync() {
   return token;
 }
 
+async function addBackgroundFetch() {
+  const registered = await TaskManager.isTaskRegisteredAsync(
+    BACKGROUND_FETCH_TASK
+  );
+  if (!registered) {
+    console.log("background task registered");
+    BackgroundFetch.registerTaskAsync(BACKGROUND_FETCH_TASK, {
+      // minimumInterval: 60 * 15, // 15 minutes
+      stopOnTerminate: false, // android only,
+      startOnBoot: true, // android only
+    });
+  }
+}
+
 export default function UserNotifications() {
-  const [isRegistered, setIsRegistered] = useState(false);
-  useEffect(async () => {
-    const datalog = await AsyncStorage.getItem("DN_userlog");
-    // console.log(datalog);
-    const registered = await TaskManager.isTaskRegisteredAsync(
-      BACKGROUND_FETCH_TASK
-    );
-    setIsRegistered(registered);
-    if (datalog && !isRegistered) {
-      console.log("background task registered");
-      BackgroundFetch.registerTaskAsync(BACKGROUND_FETCH_TASK, {
-        // minimumInterval: 60 * 15, // 15 minutes
-        stopOnTerminate: false, // android only,
-        startOnBoot: true, // android only
-      });
-    }
-  }, []);
+  addBackgroundFetch();
+  // const [isRegistered, setIsRegistered] = useState(false);
+  // useEffect(async () => {
+  //   const datalog = await AsyncStorage.getItem("DN_userlog");
+  //   // console.log(datalog);
+  //   const registered = await TaskManager.isTaskRegisteredAsync(
+  //     BACKGROUND_FETCH_TASK
+  //   );
+  //   setIsRegistered(registered);
+  //   if (datalog && !isRegistered) {
+  //     console.log("background task registered");
+  //     BackgroundFetch.registerTaskAsync(BACKGROUND_FETCH_TASK, {
+  //       // minimumInterval: 60 * 15, // 15 minutes
+  //       stopOnTerminate: false, // android only,
+  //       startOnBoot: true, // android only
+  //     });
+  //   }
+  // }, []);
   // const [status, setStatus] = useState(null);
 
   // useEffect(() => {

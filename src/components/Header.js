@@ -7,13 +7,16 @@ import {
   TouchableWithoutFeedback,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useRoute } from "@react-navigation/native";
 import { COLORS, FONTS, SIZES } from "../constants";
 import SideMenu from "./Modals/SideMenu";
 
-export default function Header({ screen }) {
+export default function Header({ screen, route }) {
   const [sideMenu, setSideMenu] = useState(false);
   const navigation = useNavigation();
+  // console.log(route.name);
+  // const route = useRoute();
+  // const screen = route.name;
   return (
     <>
       <View style={styles.container}>

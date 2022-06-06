@@ -53,7 +53,7 @@ const API = {
     //making data to send on server
     // const data = { username: username, password: password };
     //POST request
-    const response = await fetch(`${path}/user/login`, {
+    const response = await fetch(`${path}/user/update`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

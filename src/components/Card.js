@@ -31,10 +31,11 @@ export default function Card(props) {
   const swipeEnd = (key, data) => {
     if (data.translateX < -swipeDist) props.deleteTask(props.task.id);
     else if (data.translateX > swipeDist)
-      setTimeout(
-        () => props.setCompleted(props.task.id, !props.task.completed),
-        500
-      );
+      setTimeout(() => {
+        if (notify && !props.task.completed)
+          props.notifyToggle(props.task.id, !notify);
+        props.setCompleted(props.task.id, !props.task.completed);
+      }, 500);
   };
 
   function onSwipeValueChange(swipeData) {
