@@ -34,13 +34,13 @@ export default function Header({ screen, route }) {
           {screen}
         </Text>
       </View>
-      {sideMenu && (
+      {/* {sideMenu && ( */}
         <SideMenu
           screen={screen}
           active={sideMenu}
           toggleSideMenu={setSideMenu}
         />
-      )}
+      {/* )} */}
     </>
   );
 }

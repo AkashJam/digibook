@@ -95,10 +95,7 @@ export default function SettingsPage() {
           <View style={{ flexDirection: "row" }}>
             <Text
               style={{
-                ...FONTS.p_regular,
-                color: COLORS.accent,
-                backgroundColor: COLORS.secondary,
-                padding: SIZES.padding,
+                ...styles.option,
                 minWidth: 143,
               }}
             >
@@ -127,10 +124,7 @@ export default function SettingsPage() {
           >
             <Text
               style={{
-                ...FONTS.p_regular,
-                color: COLORS.accent,
-                padding: SIZES.padding,
-                backgroundColor: COLORS.secondary,
+                ...styles.option,
                 minWidth: 143,
               }}
             >
@@ -140,9 +134,10 @@ export default function SettingsPage() {
               placeholder="Enter new password"
               style={{
                 flex: 1,
-                paddingHorizontal: SIZES.margin,
+                paddingHorizontal: SIZES.padding,
                 backgroundColor: COLORS.accent,
                 ...FONTS.p_regular,
+                fontSize: 16,
               }}
               value={password}
               onChangeText={(text) => setPassword(text)}
@@ -157,10 +152,7 @@ export default function SettingsPage() {
           >
             <Text
               style={{
-                ...FONTS.p_regular,
-                color: COLORS.accent,
-                backgroundColor: COLORS.secondary,
-                padding: SIZES.padding,
+                ...styles.option,
                 minWidth: 143,
               }}
             >
@@ -187,38 +179,16 @@ export default function SettingsPage() {
           </View>
           <Text
             style={{
-              ...FONTS.p_regular,
-              color: COLORS.accent,
-              padding: SIZES.padding,
-              backgroundColor: COLORS.secondary,
+              ...styles.option,
               marginVertical: SIZES.margin,
             }}
           >
             View Collaborators
           </Text>
-          <Text
-            style={{
-              ...FONTS.p_regular,
-              color: COLORS.accent,
-              padding: SIZES.padding,
-              backgroundColor: COLORS.secondary,
-            }}
-          >
-            Logout
-          </Text>
+          <Text style={styles.option}>Logout</Text>
         </View>
         {change && (
-          <TouchableOpacity
-            onPress={editUserConfig}
-            style={{
-              marginVertical: SIZES.padding,
-              marginHorizontal: "25%",
-              borderRadius: SIZES.borderRadius,
-              padding: SIZES.margin,
-              backgroundColor: COLORS.accent,
-              alignItems: "center",
-            }}
-          >
+          <TouchableOpacity onPress={editUserConfig} style={styles.button}>
             <Text style={{ ...FONTS.h2_bold, color: COLORS.secondary }}>
               Confirm
             </Text>
@@ -229,17 +199,19 @@ export default function SettingsPage() {
   );
 }
 
-// // const styles = StyleSheet.create({
-// //   screen: {
-// //     flex: 1,
-// //     justifyContent: "center",
-// //     alignItems: "center",
-// //   },
-
-// //   textContainer: {
-// //     margin: 10,
-// //   },
-// //   boldText: {
-// //     fontWeight: "bold",
-// //   },
-// // });
+const styles = StyleSheet.create({
+  option: {
+    ...FONTS.p_regular,
+    color: COLORS.accent,
+    backgroundColor: COLORS.secondary,
+    padding: SIZES.padding,
+  },
+  button: {
+    marginVertical: SIZES.padding,
+    marginHorizontal: "25%",
+    borderRadius: SIZES.borderRadius,
+    padding: SIZES.margin,
+    backgroundColor: COLORS.accent,
+    alignItems: "center",
+  },
+});

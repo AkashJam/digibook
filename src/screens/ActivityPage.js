@@ -23,6 +23,7 @@ export default function ActivityPage({ route }) {
   const [task, setTask] = useState(
     state.activities.filter((task) => task.id === route.params.id)[0]
   );
+  console.log(task)
 
   const [name, setName] = useState(task.description);
   const [height, setHeight] = useState(0);
@@ -34,8 +35,8 @@ export default function ActivityPage({ route }) {
   const [completed, setCompleted] = useState(task.completed);
 
   const [open, setOpen] = useState(false);
-  const def = state.groups.filter((group) => group.name === "All");
-  const [value, setValue] = useState(def[0].id);
+  // const def = state.groups.filter((group) => group.name === "All");
+  const [value, setValue] = useState(task.group_id);
   let categories = [];
   state.groups.forEach((element) =>
     categories.push({ label: element.name, value: element.id })

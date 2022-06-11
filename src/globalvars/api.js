@@ -73,9 +73,9 @@ const API = {
   },
 
   // groups
-  getGroups: async (userID) => {
+  getUserGroups: async (groupID) => {
     //GET request
-    const response = await fetch(`${path}/group/${userID}`, {
+    const response = await fetch(`${path}/group/${groupID}`, {
       method: "GET",
       //Request Type
     })
@@ -92,6 +92,55 @@ const API = {
       });
     return response;
   },
+
+  addUserGroup: async (groupdata) => {
+    //POST json
+    //making data to send on server
+    // const data = { username: username, password: password };
+    //POST request
+    const response = await fetch(`${path}/group/addUser`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(groupdata),
+    })
+      .then((response) => response.json())
+      //If response is in json then in success
+      .then((responseJson) => {
+        return responseJson;
+      })
+      //If response is not in json then in error
+      .catch((error) => {
+        return error;
+      });
+    return response;
+  },
+
+  updateUserGroup: async (groupdata) => {
+    //POST json
+    //making data to send on server
+    // const data = { username: username, password: password };
+    //POST request
+    const response = await fetch(`${path}/group/updateUser`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(groupdata),
+    })
+      .then((response) => response.json())
+      //If response is in json then in success
+      .then((responseJson) => {
+        return responseJson;
+      })
+      //If response is not in json then in error
+      .catch((error) => {
+        return error;
+      });
+    return response;
+  },
+
   createGroup: async (groupdata) => {
     //POST json
     //making data to send on server

@@ -129,9 +129,7 @@ const reducer = (state, action) => {
       return obj;
 
     case "delete_task":
-      log = state.activities.filter((activity) => {
-        if (activity.id !== action.id) return activity;
-      });
+      log = state.activities.filter((activity) => activity.id !== action.id);
       obj = { ...state, activities: log };
       storeUserLog(obj);
       toastr("Task deleted.");
@@ -248,7 +246,7 @@ const reducer = (state, action) => {
       log = state.groups.map((group) => {
         if (group.id === action.id) {
           return {
-            ...activity,
+            ...group,
             name: action.name,
             modifiedOn: new Date().toString(),
           };
@@ -271,9 +269,7 @@ const reducer = (state, action) => {
       //   group: { active: false },
       // });
       // if (obj.code == 200) {
-      log = state.groups.filter((group) => {
-        if (group.id !== action.id) return group;
-      });
+      log = state.groups.filter((group) => group.id !== action.id);
       obj = { ...state, groups: log };
       storeUserLog(obj);
       toastr("Group deleted.");

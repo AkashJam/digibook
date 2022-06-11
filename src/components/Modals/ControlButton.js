@@ -14,11 +14,11 @@ export default function ControlButton(props) {
   const [value, setValue] = useState("");
   const [height, setHeight] = useState(0);
 
-  const newTask = async () => {
+  const newTask = () => {
     if (value !== "") {
-      setToggle(false);
       props.addTask(value);
       setValue("");
+      setToggle(false);
     } else setToggle(false);
   };
 
@@ -26,7 +26,7 @@ export default function ControlButton(props) {
     return (
       <View style={styles.boxWrapper}>
         <TouchableOpacity style={styles.button} onPress={() => setToggle(true)}>
-          <Text style={{ ...FONTS.h1_bold }}>+</Text>
+          <Text style={FONTS.h1_bold}>+</Text>
         </TouchableOpacity>
       </View>
     );

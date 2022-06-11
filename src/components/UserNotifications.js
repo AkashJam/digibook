@@ -14,7 +14,7 @@ const notify = (datalog) => {
   const activities = data.activities.filter(
     (activity) =>
       (activity.notify &&
-        activity.notified === undefined &&
+        // activity.notified === undefined &&
         activity.datetime === null &&
         activity.location) ||
       new Date(activity.datetime).toDateString() === new Date().toDateString()
