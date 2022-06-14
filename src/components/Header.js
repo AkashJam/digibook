@@ -19,7 +19,7 @@ export default function Header({ screen, route }) {
   // const screen = route.name;
   return (
     <>
-      <View style={styles.container}>
+      <View style={styles.container} accessibilityLabel="menu">
         {screen !== "Activity" && (
           <TouchableOpacity onPress={() => setSideMenu(true)}>
             <Ionicons name="menu" size={32} color={COLORS.secondary} />
@@ -35,11 +35,11 @@ export default function Header({ screen, route }) {
         </Text>
       </View>
       {/* {sideMenu && ( */}
-        <SideMenu
-          screen={screen}
-          active={sideMenu}
-          toggleSideMenu={setSideMenu}
-        />
+      <SideMenu
+        screen={screen}
+        active={sideMenu}
+        toggleSideMenu={setSideMenu}
+      />
       {/* )} */}
     </>
   );

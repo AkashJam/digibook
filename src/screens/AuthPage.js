@@ -20,6 +20,7 @@ const log = {
   collaborators: [],
   groups: [],
   activities: [],
+  notifications: [],
   locations: {
     lat: null,
     lon: null,
@@ -92,6 +93,7 @@ export default function AuthPage({ navigation }) {
         dispatch({
           type: "set_user",
           user: userdata,
+          notifications: user && user.notifications ? user.notifications : [],
           locations:
             user && user.locations
               ? user.locations

@@ -23,13 +23,9 @@ export default function SettingsPage() {
   const [password, setPassword] = useState("");
   const [change, setChange] = useState(false);
   useEffect(() => {
-    if (
-      name === state.displayName &&
-      value === state.range &&
-      password === "12341234"
-    )
+    if (name === state.displayName && value === state.range && password === "")
       setChange(false);
-    else setChange(true);
+    else if (password === "" || password.length > 7) setChange(true);
   }, [name, password, value]);
 
   const editUserConfig = async () => {
@@ -43,7 +39,6 @@ export default function SettingsPage() {
           type: "update_display_name",
           displayName: name,
         });
-
         console.log("name updated");
       }
     }
@@ -58,6 +53,15 @@ export default function SettingsPage() {
           range: value,
         });
         console.log("range updated");
+      }
+    }
+    if (password.length > 7) {
+      const data = await API.updateUser({
+        id: state.id,
+        user: { password: password },
+      });
+      if (data.code === 200) {
+        toastr("Password succcesfully updated");
       }
     }
     // toastr("User config updated")

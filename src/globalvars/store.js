@@ -10,6 +10,7 @@ const user = {
   collaborators: [],
   groups: [],
   activities: [],
+  notifications: [],
   locations: {},
 };
 
@@ -32,6 +33,7 @@ const reducer = (state, action) => {
         collaborators: action.user.collaborators,
         groups: action.user.groups,
         activities: action.user.activities,
+        notifications: action.notifications,
         locations: action.locations,
       };
       storeUserLog(obj);
@@ -58,6 +60,7 @@ const reducer = (state, action) => {
         collaborators: action.collaborators,
         groups: state.groups,
         activities: state.activities,
+        notifications: state.notifications,
         locations: state.locations,
       };
       storeUserLog(obj);
@@ -82,6 +85,7 @@ const reducer = (state, action) => {
         collaborators: state.collaborators,
         groups: state.groups,
         activities: state.activities,
+        notifications: state.notifications,
         locations: state.locations,
       };
       storeUserLog(obj);
@@ -279,19 +283,51 @@ const reducer = (state, action) => {
     //   return state;
     // }
 
+    //notifications
+    case "update_notifications":
+      // obj = await API.updateUser({
+      //   id: state.id,
+      //   task: { display_name: action.displayName },
+      // });
+      // if (obj.code == 200) {
+      obj = {
+        id: state.id,
+        username: state.username,
+        displayName: state.displayName,
+        range: state.range,
+        collaborators: state.collaborators,
+        groups: state.groups,
+        activities: state.activities,
+        notifications: action.notifications,
+        locations: state.locations,
+      };
+      // storeUserLog(obj);
+      // toastr("Display name updated.");
+      return obj;
+    // } else {
+    //   toastr("Error connecting to server.", toastTime);
+    //   return state;
+    // }
+
     // locations
     case "set_location":
       obj = state.locations ? state.locations : {};
       if (
-        Math.abs(obj.latitude - action.latitude) < 0.01 &&
-        Math.abs(obj.longitude - action.longitude) < 0.01
+        !state.locations ||
+        state.locations.lat === null ||
+        state.locations.lon === null
       ) {
-        if (Object.keys(obj).length !== 0)
-          Object.keys(obj).forEach((e) => {
-            if (e !== "latitude" && e !== "longitude") obj[e] = [];
-          });
-        obj.latitude = action.latitude;
-        obj.longitude = action.longitude;
+        obj.lat = action.latitude;
+        obj.lon = action.longitude;
+      } else if (
+        Math.abs(obj.latitude - action.latitude) > 0.01 &&
+        Math.abs(obj.longitude - action.longitude) > 0.01
+      ) {
+        Object.keys(obj).forEach((e) => {
+          if (e !== "lat" && e !== "lon") obj[e] = [];
+        });
+        obj.lat = action.latitude;
+        obj.lon = action.longitude;
       }
       obj[`${action.use}`] = action.location;
       storeUserLog({ ...state, locations: obj });

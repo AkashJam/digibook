@@ -23,7 +23,7 @@ export default function ActivityPage({ route }) {
   const [task, setTask] = useState(
     state.activities.filter((task) => task.id === route.params.id)[0]
   );
-  console.log(task)
+  // console.log(task)
 
   const [name, setName] = useState(task.description);
   const [height, setHeight] = useState(0);

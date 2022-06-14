@@ -290,7 +290,7 @@ export default function HomePage({ navigation }) {
         </GestureHandlerRootView>
       </View>
       <ControlButton addTask={addTask} />
-      <UserNotifications />
+      {/* <UserNotifications /> */}
     </>
   );
 }

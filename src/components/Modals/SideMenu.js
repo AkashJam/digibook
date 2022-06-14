@@ -33,6 +33,7 @@ export default function SideMenu(props) {
               props.screen === page ? COLORS.primary : COLORS.secondary,
           }}
           onPress={() => navigate(page)}
+          key={page}
         >
           {page}
         </Text>

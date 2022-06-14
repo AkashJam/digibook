@@ -43,7 +43,7 @@ export default function LocateMap(props) {
     { label: "Post Office", value: "post_office" },
   ];
   const [items, setItems] = useState(categories);
-  const [isLoading, setLoading] = useState(false);
+  const [available, setAvailable] = useState(false);
 
   const name = useRef("You are here");
 
@@ -56,12 +56,14 @@ export default function LocateMap(props) {
         await Location.getCurrentPositionAsync({}).then((currentLocation) => {
           if (value === "custom") {
             name.current = "You are here";
-            setCoordinates({
+            const newLoc = {
               latitude: currentLocation.coords.latitude,
               longitude: currentLocation.coords.longitude,
-            });
+            };
+            if (coordinates !== newLoc) setCoordinates(newLoc);
+            setAvailable(true);
           } else {
-            setLoading(true);
+            // console.log(state.location)
             if (
               state.locations &&
               state.locations.lat &&
@@ -75,9 +77,14 @@ export default function LocateMap(props) {
               state.locations[`${value}`] !== undefined &&
               state.locations[`${value}`].length !== 0
             ) {
+              // console.log(value,"stored")
               const loc_data = state.locations[`${value}`];
               const stored_loc = nearestPoint(loc_data, currentLocation);
-              setCoordinates(stored_loc);
+              // console.log(stored_loc, "stored loc")
+              if (stored_loc.latitude !== 0 && stored_loc.longitude !== 0) {
+                if (coordinates !== stored_loc) setCoordinates(stored_loc);
+                setAvailable(true);
+              } else setAvailable(false);
             } else {
               let type = value === "supermarket" ? "shop" : "amenity";
               fetch(
@@ -92,6 +99,7 @@ export default function LocateMap(props) {
               )
                 .then((response) => response.json())
                 .then((data) => {
+                  // console.log(value,"API")
                   if (data.elements.length !== 0) {
                     const API_data = data.elements.map((element) => {
                       return {
@@ -109,11 +117,15 @@ export default function LocateMap(props) {
                       use: value,
                     });
                     const API_loc = nearestPoint(API_data, currentLocation);
-                    setCoordinates(API_loc);
+                    // console.log(API_loc, "API loc")
+                    if (API_loc.latitude !== 0 && API_loc.longitude !== 0) {
+                      if (coordinates !== API_loc) setCoordinates(API_loc);
+                      setAvailable(true);
+                    } else setAvailable(false);
                   }
                 });
             }
-            setLoading(false);
+            // setLoading(false);
           }
         });
       }
@@ -194,13 +206,15 @@ export default function LocateMap(props) {
           longitudeDelta: 0.006,
         }}
       >
-        <Marker
-          draggable
-          pinColor="rgb(28,115,180)"
-          title={name.current}
-          coordinate={coordinates}
-          onDragEnd={(e) => setCoordinates(e.nativeEvent.coordinate)}
-        />
+        {available && (
+          <Marker
+            draggable
+            pinColor="rgb(28,115,180)"
+            title={name.current}
+            coordinate={coordinates}
+            onDragEnd={(e) => setCoordinates(e.nativeEvent.coordinate)}
+          />
+        )}
       </MapView>
     );
   }
@@ -250,7 +264,19 @@ export default function LocateMap(props) {
             setItems={setItems}
           />
         </View>
-        {coordinates && <Map />}
+        <Map />
+        {!available && (
+          <Text
+            style={{
+              ...FONTS.p_regular,
+              color: COLORS.secondary,
+              backgroundColor: COLORS.accent,
+              textAlign: "center",
+            }}
+          >
+            None found nearby
+          </Text>
+        )}
         <View style={styles.bottom}>
           <TouchableOpacity style={styles.button} onPress={props.close}>
             <Text style={{ ...FONTS.h2_bold, color: "rgb(28,115,180)" }}>
@@ -267,34 +293,34 @@ export default function LocateMap(props) {
     );
   }
 
-  if (!props.map) return <></>;
+  // if (!props.map) return <></>;
 
   return (
-    <View style={styles.overlay}>
-      <Modal
-        animationType="fade"
-        transparent={true}
-        visible={props.map}
-        onRequestClose={() => props.close()}
+    // <View style={styles.overlay}>
+    <Modal
+      animationType="fade"
+      transparent={true}
+      visible={props.map}
+      onRequestClose={() => props.close()}
+    >
+      <TouchableOpacity
+        activeOpacity={1}
+        style={styles.overlay}
+        onPress={() => props.close()}
       >
-        <TouchableOpacity
-          activeOpacity={1}
-          style={{ height: "100%", width: "100%" }}
-          onPress={() => props.close()}
-        >
-          {isLoading && (
-            <View style={styles.activity}>
-              <ActivityIndicator size={100} color={COLORS.primary} />
-            </View>
-          )}
-          <View style={styles.modal}>
-            <TouchableWithoutFeedback>
-              <Popup />
-            </TouchableWithoutFeedback>
+        {/* {isLoading && (
+          <View style={styles.activity}>
+            <ActivityIndicator size={100} color={COLORS.primary} />
           </View>
-        </TouchableOpacity>
-      </Modal>
-    </View>
+        )} */}
+        <TouchableWithoutFeedback>
+          <View style={styles.modal}>
+            <Popup />
+          </View>
+        </TouchableWithoutFeedback>
+      </TouchableOpacity>
+    </Modal>
+    // </View>
   );
 }
 
