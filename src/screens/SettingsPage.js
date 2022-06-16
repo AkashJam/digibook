@@ -4,28 +4,35 @@ import {
   StyleSheet,
   Text,
   View,
-  Button,
-  Platform,
   Dimensions,
   TouchableOpacity,
+  TextInput,
 } from "react-native";
 import { Header } from "../components";
 import { COLORS, FONTS, PAGE, PAGEHEAD, SIZES } from "../constants";
 import { FontAwesome } from "@expo/vector-icons";
-
 import { UserContext, toastr, API } from "../globalvars";
-import { TextInput } from "react-native-gesture-handler";
 
 export default function SettingsPage() {
   const [state, dispatch] = React.useContext(UserContext);
   const [name, setName] = useState(state.displayName);
   const [value, setValue] = useState(state.range);
   const [password, setPassword] = useState("");
+  const [text, setText] = useState("");
   const [change, setChange] = useState(false);
+
   useEffect(() => {
-    if (name === state.displayName && value === state.range && password === "")
-      setChange(false);
-    else if (password === "" || password.length > 7) setChange(true);
+    if (
+      ((name !== state.displayName && name !== "") || value !== state.range) &&
+      (password === "" || password.length > 7)
+    ) {
+      setText("");
+      setChange(true);
+    } else setChange(false);
+    if (name !== state.displayName && name === "")
+      setText("Display name cannot be left empty");
+    if (password !== "" && password.length <= 7)
+      setText("Password needs to be atleast 8 characters");
   }, [name, password, value]);
 
   const editUserConfig = async () => {
@@ -171,9 +178,9 @@ export default function SettingsPage() {
               }}
             >
               <Slider
-                step={0.05}
-                minimumValue={0.5}
-                maximumValue={1.5}
+                step={0.1}
+                minimumValue={0.1}
+                maximumValue={1}
                 value={value}
                 onValueChange={(value) => setValue(value[0])}
                 thumbTintColor={COLORS.primary}
@@ -181,15 +188,17 @@ export default function SettingsPage() {
               />
             </View>
           </View>
-          <Text
+          {/* <Text
             style={{
               ...styles.option,
               marginVertical: SIZES.margin,
             }}
           >
             View Collaborators
+          </Text> */}
+          <Text style={{ ...styles.option, marginTop: SIZES.margin }}>
+            Logout
           </Text>
-          <Text style={styles.option}>Logout</Text>
         </View>
         {change && (
           <TouchableOpacity onPress={editUserConfig} style={styles.button}>
@@ -197,6 +206,9 @@ export default function SettingsPage() {
               Confirm
             </Text>
           </TouchableOpacity>
+        )}
+        {text !== "" && (
+          <Text style={{ ...PAGEHEAD, textAlign: "center" }}>{text}</Text>
         )}
       </View>
     </>

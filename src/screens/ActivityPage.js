@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
   StyleSheet,
-  Switch,
+  TextInput,
   TouchableOpacity,
   Alert,
   Dimensions,
@@ -13,17 +13,16 @@ import { UserContext, toastr, API } from "../globalvars";
 import { COLORS, PAGE, SIZES, FONTS } from "../constants";
 import { useNavigation } from "@react-navigation/native";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
-import { TextInput } from "react-native-gesture-handler";
 import DropDownPicker from "react-native-dropdown-picker";
 import { Header, LocateMap } from "../components";
 import * as Location from "expo-location";
 
 export default function ActivityPage({ route }) {
   const [state, dispatch] = React.useContext(UserContext);
-  const [task, setTask] = useState(
-    state.activities.filter((task) => task.id === route.params.id)[0]
+  const currentTask = state.activities.filter(
+    (task) => task.id === route.params.id
   );
-  // console.log(task)
+  const [task, setTask] = useState(currentTask[0]);
 
   const [name, setName] = useState(task.description);
   const [height, setHeight] = useState(0);
@@ -31,7 +30,12 @@ export default function ActivityPage({ route }) {
   const [date, setDate] = useState(
     task.datetime ? new Date(task.datetime) : new Date()
   );
-  const [loc, setLoc] = useState(JSON.parse(task.location));
+  const prevLoc = task.location
+    ? task.location.type
+      ? task.location
+      : JSON.parse(task.location)
+    : null;
+  const [loc, setLoc] = useState(prevLoc);
   const [completed, setCompleted] = useState(task.completed);
 
   const [open, setOpen] = useState(false);
@@ -375,7 +379,9 @@ export default function ActivityPage({ route }) {
         >
           {loc.type
             ? loc.type === "custom"
-              ? `Latitude: ${loc.latitude}\nLongitude: ${loc.longitude}`
+              ? `Latitude: ${loc.latitude.toFixed(
+                  7
+                )}\nLongitude: ${loc.longitude.toFixed(7)}`
               : `nearby ${loc.type}`
             : "Not Set"}
         </Text>
@@ -410,8 +416,7 @@ export default function ActivityPage({ route }) {
           listItemLabelStyle={FONTS.p_regular}
           searchTextInputStyle={FONTS.p_regular}
           searchable={true}
-          searchPlaceholder="Enter a group name"
-          addCustomItem={true}
+          searchPlaceholder="Select a group name"
           open={open}
           value={value}
           items={items}

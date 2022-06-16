@@ -7,8 +7,10 @@ import {
   TouchableOpacity,
   TouchableWithoutFeedback,
   Alert,
+  StyleSheet,
+  TextInput,
 } from "react-native";
-import { FlatList, TextInput } from "react-native-gesture-handler";
+import { FlatList } from "react-native-gesture-handler";
 import { COLORS, FONTS, SIZES } from "../../constants";
 import { API, toastr } from "../../globalvars";
 
@@ -69,7 +71,7 @@ export default function CollabMenu(props) {
     );
   };
 
-  const editUser = async (username) => {
+  const editUser = async (collabUser) => {
     Alert.alert(
       "Upgrade user",
       "Are you sure you want to make user owner of the group",
@@ -82,21 +84,27 @@ export default function CollabMenu(props) {
           text: "Yes",
           onPress: async () => {
             const userdata = users.filter((user) => user.owner);
-            data = await API.updateUserGroup({
+            const ownerdata = await API.updateUserGroup({
               id: props.id,
               user: { username: userdata[0].username },
               group: { owner: false, maintainer: true },
             });
-            data = await API.updateUserGroup({
+            const collabdata = await API.updateUserGroup({
               id: props.id,
-              user: { username: username },
+              user: { username: collabUser },
               group: { owner: true, maintainer: false },
             });
-            if (data.code == 200) {
+            if (ownerdata.code == 200 && collabdata.code == 200) {
               // dispatch({ type: "delete_group", id: value });
-              const newUsers = props.users.filter(
-                (user) => user.username !== username
-              );
+              const newUsers = props.users.map((user) => {
+                if (user.username === userdata[0].username) {
+                  user.owner = false;
+                  return user;
+                } else if (user.username === collabUser) {
+                  user.owner = true;
+                  return user;
+                } else return user;
+              });
               props.setUsers(newUsers);
               setUsers(newUsers);
             } else toastr(data.status);
@@ -161,15 +169,7 @@ export default function CollabMenu(props) {
     >
       <TouchableOpacity
         activeOpacity={1}
-        style={{
-          position: "absolute",
-          backgroundColor: "rgba(0,0,0,0.5)",
-          height: "100%",
-          width: "100%",
-          zIndex: 5,
-          alignItems: "center",
-          justifyContent: "center",
-        }}
+        style={styles.overlay}
         onPress={() => props.close()}
       >
         <TouchableWithoutFeedback>
@@ -193,65 +193,80 @@ export default function CollabMenu(props) {
               Collaborators
             </Text>
             {props.owner && (
-              <View
-                style={{
-                  marginVertical: SIZES.padding,
-                  color: COLORS.secondary,
-                  backgroundColor: COLORS.accent,
-                  borderRadius: SIZES.borderRadius,
-                  flexDirection: "row-reverse",
-                  alignItems: "center",
-                  overflow: "hidden",
-                }}
-              >
-                <TouchableOpacity
-                  style={{
-                    backgroundColor: COLORS.primary,
-                    alignItems: "center",
-                    paddingVertical: 8,
-                    paddingHorizontal: "6%",
-                  }}
-                  onPress={addUser}
-                >
+              <View style={styles.searchbar}>
+                <TouchableOpacity style={styles.add} onPress={addUser}>
                   <Text style={{ ...FONTS.h1_bold, color: COLORS.accent }}>
                     +
                   </Text>
                 </TouchableOpacity>
                 <TextInput
-                  placeholder="Enter username"
-                  style={{
-                    ...FONTS.p_regular,
-                    fontSize: 16,
-                    color: COLORS.secondary,
-                    flex: 1,
-                    // marginVertical: SIZES.margin,
-                    marginHorizontal: "6%",
-                  }}
+                  placeholder="Enter known username"
+                  style={styles.search}
                   value={username}
                   onChangeText={(text) => setUsername(text)}
                 />
               </View>
             )}
-            <View
-              style={{
-                borderRadius: SIZES.borderRadius,
-                borderColor: COLORS.accent,
-                borderWidth: 1,
-                marginVertical: SIZES.padding,
-                padding: SIZES.margin,
-                height:
-                  users.length === 1 ? 48 * users.length : 43 * users.length,
-              }}
-            >
-              <FlatList
-                data={users}
-                renderItem={userTypes}
-                keyExtractor={(item) => `${item.username}`}
-              />
-            </View>
+            {users && (
+              <View
+                style={{
+                  ...styles.list,
+                  height:
+                    users.length === 1 ? 48 * users.length : 43 * users.length,
+                }}
+              >
+                <FlatList
+                  data={users}
+                  renderItem={userTypes}
+                  keyExtractor={(item) => `${item.username}`}
+                />
+              </View>
+            )}
           </View>
         </TouchableWithoutFeedback>
       </TouchableOpacity>
     </Modal>
   );
 }
+
+const styles = new StyleSheet.create({
+  overlay: {
+    position: "absolute",
+    backgroundColor: "rgba(0,0,0,0.5)",
+    height: "100%",
+    width: "100%",
+    zIndex: 5,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  searchbar: {
+    marginVertical: SIZES.padding,
+    color: COLORS.secondary,
+    backgroundColor: COLORS.accent,
+    borderRadius: SIZES.borderRadius,
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    overflow: "hidden",
+  },
+  add: {
+    backgroundColor: COLORS.primary,
+    alignItems: "center",
+    paddingVertical: 8,
+    paddingHorizontal: "6%",
+  },
+  search: {
+    ...FONTS.p_regular,
+    fontSize: 16,
+    color: COLORS.secondary,
+    flex: 1,
+    // marginVertical: SIZES.margin,
+    marginHorizontal: "6%",
+  },
+  list: {
+    borderRadius: SIZES.borderRadius,
+    borderColor: COLORS.accent,
+    borderWidth: 1,
+    marginVertical: SIZES.padding,
+    padding: SIZES.margin,
+  },
+});

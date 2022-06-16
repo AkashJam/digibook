@@ -1,0 +1,134 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`AuthPage test against snapshot 1`] = `
+<div
+  className="css-view-1dbjc4n r-alignItems-1awozwy r-backgroundColor-i7nevx r-height-1pi2tsx r-paddingHorizontal-1x7blby r-paddingTop-1gingfq"
+>
+  <div
+    className="css-text-901oao r-color-18or775"
+    dir="auto"
+    style={
+      Object {
+        "fontFamily": "Caviar_Dreams_Bold",
+        "fontSize": "24px",
+        "paddingBottom": "4%",
+        "paddingLeft": "4%",
+        "paddingRight": "4%",
+        "paddingTop": "4%",
+      }
+    }
+  >
+    Digital Notebook
+  </div>
+  <input
+    autoCapitalize="sentences"
+    autoComplete="on"
+    autoCorrect="on"
+    className="css-textinput-11aywtz r-placeholderTextColor-1o1bpf7"
+    dir="auto"
+    onBlur={[Function]}
+    onChange={[Function]}
+    onFocus={[Function]}
+    onKeyDown={[Function]}
+    onSelect={[Function]}
+    placeholder="Username"
+    readOnly={false}
+    spellCheck={true}
+    style={
+      Object {
+        "borderBottomColor": "rgba(0,166,251,1.00)",
+        "borderLeftColor": "rgba(0,166,251,1.00)",
+        "borderRightColor": "rgba(0,166,251,1.00)",
+        "borderTopColor": "rgba(0,166,251,1.00)",
+      }
+    }
+    type="text"
+    value=""
+  />
+  <input
+    autoCapitalize="sentences"
+    autoComplete="on"
+    autoCorrect="on"
+    className="css-textinput-11aywtz r-placeholderTextColor-1o1bpf7"
+    dir="auto"
+    onBlur={[Function]}
+    onChange={[Function]}
+    onFocus={[Function]}
+    onKeyDown={[Function]}
+    onSelect={[Function]}
+    placeholder="Password"
+    readOnly={false}
+    spellCheck={true}
+    style={
+      Object {
+        "borderBottomColor": "rgba(0,166,251,1.00)",
+        "borderLeftColor": "rgba(0,166,251,1.00)",
+        "borderRightColor": "rgba(0,166,251,1.00)",
+        "borderTopColor": "rgba(0,166,251,1.00)",
+      }
+    }
+    type="password"
+    value=""
+  />
+  <div
+    aria-disabled={true}
+    className="css-view-1dbjc4n r-transitionProperty-1i6wzkk r-userSelect-lrvibr"
+    onClick={[Function]}
+    onContextMenu={[Function]}
+    onKeyDown={[Function]}
+    style={
+      Object {
+        "WebkitTransitionDuration": "0s",
+        "backgroundColor": "rgba(246,240,237,1.00)",
+        "transitionDuration": "0s",
+      }
+    }
+    tabIndex="-1"
+  >
+    <div
+      className="css-text-901oao r-fontFamily-1cdzzfu r-fontSize-1i10wst"
+      dir="auto"
+      style={
+        Object {
+          "color": "rgba(54,54,53,1.00)",
+        }
+      }
+    >
+      LOGIN
+    </div>
+  </div>
+  <div
+    aria-disabled={true}
+    className="css-view-1dbjc4n r-transitionProperty-1i6wzkk r-userSelect-lrvibr"
+    onClick={[Function]}
+    onContextMenu={[Function]}
+    onKeyDown={[Function]}
+    style={
+      Object {
+        "WebkitTransitionDuration": "0s",
+        "backgroundColor": "rgba(246,240,237,1.00)",
+        "transitionDuration": "0s",
+      }
+    }
+    tabIndex="-1"
+  >
+    <div
+      className="css-text-901oao r-fontFamily-1cdzzfu r-fontSize-1i10wst"
+      dir="auto"
+      style={
+        Object {
+          "color": "rgba(54,54,53,1.00)",
+        }
+      }
+    >
+      REGISTER
+    </div>
+  </div>
+  <div
+    className="css-text-901oao r-color-18or775 r-fontFamily-1cdzzfu r-fontSize-1i10wst r-paddingHorizontal-cf760m r-paddingVertical-1crsq4q r-textAlign-q4m81j"
+    dir="auto"
+  >
+    First time? Get started with just a username and password
+  </div>
+</div>
+`;

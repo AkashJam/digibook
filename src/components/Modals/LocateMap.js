@@ -12,21 +12,24 @@ import React, { useState, useEffect, useRef, useContext } from "react";
 import MapView, { Marker } from "react-native-maps";
 import DropDownPicker from "react-native-dropdown-picker";
 import * as Location from "expo-location";
-import { UserContext, toastr } from "../../globalvars";
+import { UserContext } from "../../globalvars";
 import { ActivityIndicator } from "react-native";
 
 const searchDistance = 0.02;
 
 export default function LocateMap(props) {
   const [state, dispatch] = useContext(UserContext);
-  const [coordinates, setCoordinates] = useState(
+  const prevCord =
     props.location && props.location.latitude && props.location.longitude
       ? {
           latitude: props.location.latitude,
           longitude: props.location.longitude,
         }
-      : null
-  );
+      : {
+          latitude: null,
+          longitude: null,
+        };
+  const [coordinates, setCoordinates] = useState();
 
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState(
@@ -41,93 +44,198 @@ export default function LocateMap(props) {
     { label: "Bank", value: "bank" },
     { label: "Pharmacy", value: "pharmacy" },
     { label: "Post Office", value: "post_office" },
+    { label: "Police Station", value: "police" },
   ];
   const [items, setItems] = useState(categories);
   const [available, setAvailable] = useState(false);
 
   const name = useRef("You are here");
+  const deviceLoc = useRef({ coords: { latitude: null, longitude: null } });
 
   useEffect(() => {
     (async () => {
-      let { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") {
-        console.log("Permission to access location was denied");
+      if (
+        deviceLoc.current.coords.latitude &&
+        deviceLoc.current.coords.longitude
+      ) {
+        if (value === "custom") {
+          name.current = "You are here";
+          if (
+            coordinates.latitude !== deviceLoc.current.coords.latitude &&
+            coordinates.longitude !== deviceLoc.current.coords.longitude
+          )
+            setCoordinates(deviceLoc.current.coords);
+          setAvailable(true);
+        } else {
+          // console.log(state.location)
+          if (
+            state.locations &&
+            state.locations.lat &&
+            state.locations.lon &&
+            (Math.abs(
+              state.locations.lat - deviceLoc.current.coords.latitude
+            ) >= searchDistance ||
+              Math.abs(
+                state.locations.lon - deviceLoc.current.coords.longitude
+              ) >= searchDistance) &&
+            state.locations[`${value}`] !== undefined &&
+            state.locations[`${value}`].length !== 0
+          ) {
+            // console.log(value,"stored")
+            const loc_data = state.locations[`${value}`];
+            const stored_loc = nearestPoint(loc_data, deviceLoc.current);
+            // console.log(stored_loc, "stored loc")
+            if (stored_loc.latitude !== 0 && stored_loc.longitude !== 0) {
+              if (
+                coordinates.latitude !== stored_loc.latitude &&
+                coordinates.longitude !== stored_loc.longitude
+              )
+                setCoordinates(stored_loc);
+              setAvailable(true);
+            } else setAvailable(false);
+          } else {
+            let type = value === "supermarket" ? "shop" : "amenity";
+            fetch(
+              `http://www.overpass-api.de/api/interpreter?data=[out:json];node
+                ["${type}"=${value}]
+                (${deviceLoc.current.coords.latitude - searchDistance},${
+                deviceLoc.current.coords.longitude - searchDistance
+              },${deviceLoc.current.coords.latitude + searchDistance},${
+                deviceLoc.current.coords.longitude + searchDistance
+              });
+                out;`
+            )
+              .then((response) => response.json())
+              .then((data) => {
+                // console.log(value,"API")
+                if (data.elements.length !== 0) {
+                  const API_data = data.elements.map((element) => {
+                    return {
+                      id: element.id,
+                      latitude: element.lat,
+                      longitude: element.lon,
+                      name: element.tags.name,
+                    };
+                  });
+                  dispatch({
+                    type: "set_location",
+                    latitude: deviceLoc.current.coords.latitude,
+                    longitude: deviceLoc.current.coords.longitude,
+                    location: API_data,
+                    use: value,
+                  });
+                  const API_loc = nearestPoint(API_data, deviceLoc.current);
+                  // console.log(API_loc, "API loc")
+                  if (API_loc.latitude !== 0 && API_loc.longitude !== 0) {
+                    if (
+                      coordinates.latitude !== API_loc.latitude &&
+                      coordinates.longitude !== API_loc.longitude
+                    )
+                      setCoordinates(API_loc);
+                    setAvailable(true);
+                  } else setAvailable(false);
+                }
+              });
+          }
+          // setLoading(false);
+        }
       } else {
-        await Location.getCurrentPositionAsync({}).then((currentLocation) => {
-          if (value === "custom") {
-            name.current = "You are here";
+        let { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== "granted") {
+          console.log("Permission to access location was denied");
+        } else {
+          await Location.getCurrentPositionAsync({}).then((currentLocation) => {
             const newLoc = {
               latitude: currentLocation.coords.latitude,
               longitude: currentLocation.coords.longitude,
             };
-            if (coordinates !== newLoc) setCoordinates(newLoc);
-            setAvailable(true);
-          } else {
-            // console.log(state.location)
-            if (
-              state.locations &&
-              state.locations.lat &&
-              state.locations.lon &&
-              (Math.abs(
-                state.locations.lat - currentLocation.coords.latitude
-              ) >= searchDistance ||
-                Math.abs(
-                  state.locations.lon - currentLocation.coords.longitude
-                ) >= searchDistance) &&
-              state.locations[`${value}`] !== undefined &&
-              state.locations[`${value}`].length !== 0
-            ) {
-              // console.log(value,"stored")
-              const loc_data = state.locations[`${value}`];
-              const stored_loc = nearestPoint(loc_data, currentLocation);
-              // console.log(stored_loc, "stored loc")
-              if (stored_loc.latitude !== 0 && stored_loc.longitude !== 0) {
-                if (coordinates !== stored_loc) setCoordinates(stored_loc);
-                setAvailable(true);
-              } else setAvailable(false);
-            } else {
-              let type = value === "supermarket" ? "shop" : "amenity";
-              fetch(
-                `http://www.overpass-api.de/api/interpreter?data=[out:json];node
-                  ["${type}"=${value}]
-                  (${currentLocation.coords.latitude - searchDistance},${
-                  currentLocation.coords.longitude - searchDistance
-                },${currentLocation.coords.latitude + searchDistance},${
-                  currentLocation.coords.longitude + searchDistance
-                });
-                  out;`
+            deviceLoc.current.coords = newLoc;
+            if (value === "custom") {
+              name.current = "You are here";
+              if (
+                !coordinates ||
+                coordinates.latitude !== newLoc.latitude ||
+                coordinates.longitude !== newLoc.longitude
               )
-                .then((response) => response.json())
-                .then((data) => {
-                  // console.log(value,"API")
-                  if (data.elements.length !== 0) {
-                    const API_data = data.elements.map((element) => {
-                      return {
-                        id: element.id,
-                        latitude: element.lat,
-                        longitude: element.lon,
-                        name: element.tags.name,
-                      };
-                    });
-                    dispatch({
-                      type: "set_location",
-                      latitude: currentLocation.coords.latitude,
-                      longitude: currentLocation.coords.longitude,
-                      location: API_data,
-                      use: value,
-                    });
-                    const API_loc = nearestPoint(API_data, currentLocation);
-                    // console.log(API_loc, "API loc")
-                    if (API_loc.latitude !== 0 && API_loc.longitude !== 0) {
-                      if (coordinates !== API_loc) setCoordinates(API_loc);
-                      setAvailable(true);
-                    } else setAvailable(false);
-                  }
-                });
+                setCoordinates(newLoc);
+              setAvailable(true);
+            } else {
+              // console.log(state.location)
+              if (
+                state.locations &&
+                state.locations.lat &&
+                state.locations.lon &&
+                (Math.abs(
+                  state.locations.lat - currentLocation.coords.latitude
+                ) >= searchDistance ||
+                  Math.abs(
+                    state.locations.lon - currentLocation.coords.longitude
+                  ) >= searchDistance) &&
+                state.locations[`${value}`] !== undefined &&
+                state.locations[`${value}`].length !== 0
+              ) {
+                // console.log(value,"stored")
+                const loc_data = state.locations[`${value}`];
+                const stored_loc = nearestPoint(loc_data, currentLocation);
+                // console.log(stored_loc, "stored loc")
+                if (stored_loc.latitude !== 0 && stored_loc.longitude !== 0) {
+                  if (
+                    !coordinates ||
+                    coordinates.latitude !== stored_loc.latitude ||
+                    coordinates.longitude !== stored_loc.longitude
+                  )
+                    setCoordinates(stored_loc);
+                  setAvailable(true);
+                } else setAvailable(false);
+              } else {
+                let type = value === "supermarket" ? "shop" : "amenity";
+                fetch(
+                  `http://www.overpass-api.de/api/interpreter?data=[out:json];node
+                    ["${type}"=${value}]
+                    (${currentLocation.coords.latitude - searchDistance},${
+                    currentLocation.coords.longitude - searchDistance
+                  },${currentLocation.coords.latitude + searchDistance},${
+                    currentLocation.coords.longitude + searchDistance
+                  });
+                    out;`
+                )
+                  .then((response) => response.json())
+                  .then((data) => {
+                    // console.log(value,"API")
+                    if (data.elements.length !== 0) {
+                      const API_data = data.elements.map((element) => {
+                        return {
+                          id: element.id,
+                          latitude: element.lat,
+                          longitude: element.lon,
+                          name: element.tags.name,
+                        };
+                      });
+                      dispatch({
+                        type: "set_location",
+                        latitude: currentLocation.coords.latitude,
+                        longitude: currentLocation.coords.longitude,
+                        location: API_data,
+                        use: value,
+                      });
+                      const API_loc = nearestPoint(API_data, currentLocation);
+                      // console.log(API_loc, "API loc")
+                      if (API_loc.latitude !== 0 && API_loc.longitude !== 0) {
+                        if (
+                          !coordinates ||
+                          coordinates.latitude !== API_loc.latitude ||
+                          coordinates.longitude !== API_loc.longitude
+                        )
+                          setCoordinates(API_loc);
+                        setAvailable(true);
+                      } else setAvailable(false);
+                    }
+                  });
+              }
+              // setLoading(false);
             }
-            // setLoading(false);
-          }
-        });
+          });
+        }
       }
     })();
   }, [value]);
@@ -135,11 +243,13 @@ export default function LocateMap(props) {
   const changeLocation = () => {
     // console.log({ type: value, ...coordinates });
     if (
-      !props.location ||
-      (props.location &&
-        (props.location.type !== value ||
-          props.location.latitude !== coordinates.latitude ||
-          props.location.longitude !== coordinates.longitude))
+      coordinates.latitude &&
+      coordinates.longitude &&
+      (!props.location ||
+        (props.location &&
+          (props.location.type !== value ||
+            props.location.latitude !== coordinates.latitude ||
+            props.location.longitude !== coordinates.longitude)))
     )
       props.setLocation({ type: value, ...coordinates });
     else props.close();
@@ -195,28 +305,34 @@ export default function LocateMap(props) {
   }
 
   function Map() {
-    return (
-      <MapView
-        style={styles.map}
-        zoomControlEnabled={true}
-        region={{
-          latitude: coordinates.latitude,
-          longitude: coordinates.longitude,
-          latitudeDelta: 0.012,
-          longitudeDelta: 0.006,
-        }}
-      >
-        {available && (
-          <Marker
-            draggable
-            pinColor="rgb(28,115,180)"
-            title={name.current}
-            coordinate={coordinates}
-            onDragEnd={(e) => setCoordinates(e.nativeEvent.coordinate)}
-          />
-        )}
-      </MapView>
-    );
+    if (
+      coordinates &&
+      coordinates.latitude !== null &&
+      coordinates.longitude !== null
+    )
+      return (
+        <MapView
+          style={styles.map}
+          zoomControlEnabled={true}
+          initialRegion={{
+            latitude: coordinates.latitude,
+            longitude: coordinates.longitude,
+            latitudeDelta: 0.012,
+            longitudeDelta: 0.006,
+          }}
+        >
+          {available && (
+            <Marker
+              draggable
+              pinColor="rgb(28,115,180)"
+              title={name.current}
+              coordinate={coordinates}
+              onDragEnd={(e) => setCoordinates(e.nativeEvent.coordinate)}
+            />
+          )}
+        </MapView>
+      );
+    else return <></>;
   }
 
   function Popup() {
@@ -296,7 +412,6 @@ export default function LocateMap(props) {
   // if (!props.map) return <></>;
 
   return (
-    // <View style={styles.overlay}>
     <Modal
       animationType="fade"
       transparent={true}
@@ -320,7 +435,6 @@ export default function LocateMap(props) {
         </TouchableWithoutFeedback>
       </TouchableOpacity>
     </Modal>
-    // </View>
   );
 }
 

@@ -19,14 +19,20 @@ export default function Header({ screen, route }) {
   // const screen = route.name;
   return (
     <>
-      <View style={styles.container} accessibilityLabel="menu">
+      <View style={styles.container}>
         {screen !== "Activity" && (
-          <TouchableOpacity onPress={() => setSideMenu(true)}>
+          <TouchableOpacity
+            accessibilityRole="menu"
+            onPress={() => setSideMenu(true)}
+          >
             <Ionicons name="menu" size={32} color={COLORS.secondary} />
           </TouchableOpacity>
         )}
         {screen === "Activity" && (
-          <TouchableOpacity onPress={() => navigation.goBack()}>
+          <TouchableOpacity
+            accessibilityRole="menu"
+            onPress={() => navigation.goBack()}
+          >
             <Ionicons name="arrow-back" size={32} color={COLORS.secondary} />
           </TouchableOpacity>
         )}
@@ -35,11 +41,11 @@ export default function Header({ screen, route }) {
         </Text>
       </View>
       {/* {sideMenu && ( */}
-      <SideMenu
-        screen={screen}
-        active={sideMenu}
-        toggleSideMenu={setSideMenu}
-      />
+        <SideMenu
+          screen={screen}
+          active={sideMenu}
+          toggleSideMenu={setSideMenu}
+        />
       {/* )} */}
     </>
   );

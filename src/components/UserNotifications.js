@@ -16,16 +16,26 @@ const notify = async (activities) => {
   // console.log(data.notifications);
   activities.forEach(async (activity) => {
     if (activity.datetime) {
-      const timer = Math.abs(new Date(activity.datetime) - new Date()) / 60000;
-      if (5 < timer && timer < 15) {
-        // If notification timer is in less than 15 minutes
-        registerForPushNotificationsAsync();
-        await schedulePushNotification(
-          activity.description,
-          Math.floor(timer).toString(),
-          "time"
-        );
-        // markNotified(data, activity.id, places[places.length - 1], "time");
+      const prevNotification = data.notifications.filter(
+        (task) => task.id === activity.id
+      );
+      if (
+        prevNotification.length === 0 ||
+        !prevNotification[0].datetime ||
+        prevNotification[0].datetime !== activity.datetime
+      ) {
+        const timer =
+          Math.abs(new Date(activity.datetime) - new Date()) / 60000;
+        if (5 < timer && timer < 15) {
+          // If notification timer is in less than 15 minutes
+          registerForPushNotificationsAsync();
+          await schedulePushNotification(
+            activity.description,
+            Math.floor(timer).toString(),
+            "time"
+          );
+          data = await markNotified(activity.id, activity.datetime, "time");
+        }
       }
     } else {
       const act_loc = JSON.parse(activity.location);
@@ -52,7 +62,7 @@ const notify = async (activities) => {
               data.range
             );
             if (places.length !== 0)
-              data = prepNotification(data, activity, places);
+              data = await prepNotification(activity, places);
           } else {
             let type = act_loc.type === "supermarket" ? "shop" : "amenity";
             fetch(
@@ -102,39 +112,52 @@ const notify = async (activities) => {
                   AsyncStorage.setItem(`DN_userlog`, JSON.stringify(data));
                   const places = nearestPoint(API_data, currentLoc, data.range);
                   if (places.length !== 0)
-                    data = prepNotification(data, activity, places);
+                    data = await prepNotification(activity, places);
                 }
               });
           }
         } else {
           const places = nearestPoint([act_loc], currentLoc, data.range);
           if (places.length !== 0)
-            data = prepNotification(data, activity, places);
+            data = await prepNotification(activity, places);
         }
       });
     }
   });
-  return data.notifications;
 };
 
-async function prepNotification(data, activity, places) {
+async function prepNotification(activity, places) {
+  const datalog = await AsyncStorage.getItem("DN_userlog");
+  const data = JSON.parse(datalog);
   const prevNotification = data.notifications.filter(
     (task) => task.id === activity.id
   );
   if (
     prevNotification.length === 0 ||
+    !prevNotification[0].lat ||
+    !prevNotification[0].lon ||
     prevNotification[0].date !== new Date().toDateString() ||
-    (prevNotification[0].lat !== places[places.length - 1].latitude &&
-      prevNotification[0].lon !== places[places.length - 1].longitude)
+    prevNotification[0].lat.toFixed(7) !==
+      places[places.length - 1].latitude.toFixed(7) ||
+    prevNotification[0].lon.toFixed(7) !==
+      places[places.length - 1].longitude.toFixed(7)
   ) {
-    // console.log(prevNotification[0],"not same so new notify")
+    console.log(
+      // prevNotification[0],
+      // {
+      //   lat: places[places.length - 1].latitude,
+      //   lon: places[places.length - 1].longitude,
+      //   date: new Date().toDateString(),
+      // },
+      "not same so new notify"
+    );
     registerForPushNotificationsAsync();
     await schedulePushNotification(
       activity.description,
       places[places.length - 1].distance.toString(),
       "loc"
     );
-    data = await markNotified(activity.id, places[places.length - 1]);
+    data = await markNotified(activity.id, places[places.length - 1], "loc");
   }
   return data;
 }
@@ -181,22 +204,31 @@ function distance(lat1, lat2, lon1, lon2) {
   return c * r;
 }
 
-async function markNotified(id, place) {
+async function markNotified(id, trigger, type) {
   const datalog = await AsyncStorage.getItem("DN_userlog");
   const data = JSON.parse(datalog);
   const notifications = data.notifications.filter((task) => task.id === id);
   if (notifications.length === 0)
-    data.notifications.push({
-      id: id,
-      lat: place.latitude,
-      lon: place.longitude,
-      date: new Date().toDateString(),
-    });
+    if (type === "loc")
+      data.notifications.push({
+        id: id,
+        lat: trigger.latitude,
+        lon: trigger.longitude,
+        date: new Date().toDateString(),
+      });
+    else
+      data.notifications.push({
+        id: id,
+        datetime: trigger,
+        date: new Date().toDateString(),
+      });
   else
     data.notifications = data.notifications.map((task) => {
       if (task.id === id) {
-        task.lat = place.latitude;
-        task.lon = place.longitude;
+        if (type === "loc") {
+          task.lat = trigger.latitude;
+          task.lon = trigger.longitude;
+        } else task.datetime = trigger;
         task.date = new Date().toDateString();
       }
       return task;
@@ -280,9 +312,10 @@ async function registerForPushNotificationsAsync() {
     }
     token = (await Notifications.getExpoPushTokenAsync()).data;
     // console.log(token);
-  } else {
-    alert("Must use physical device for Push Notifications");
   }
+  // else {
+  //   alert("Must use physical device for Push Notifications");
+  // }
 
   if (Platform.OS === "android") {
     Notifications.setNotificationChannelAsync("default", {
@@ -325,75 +358,41 @@ export default function UserNotifications() {
     const activities = state.activities.filter(
       (activity) =>
         activity.notify &&
-        activity.notified === undefined &&
         ((activity.datetime === null && activity.location) ||
           new Date(activity.datetime).toDateString() ===
             new Date().toDateString())
     );
-    // console.log(datalog);
-    // const registered = await TaskManager.isTaskRegisteredAsync(
-    //   BACKGROUND_FETCH_TASK
-    // );
-    // setIsRegistered(registered);
     if (activities.length !== 0) {
-      const notifications = await notify(activities);
-      let notUpdate = true;
-      notifications.every((newnote) => {
-        const oldnote = state.notifications.filter(
-          (note) => note.id === newnote.id
-        );
-        // console.log(oldnote,newnote)
-        if (oldnote.length === 0) {
-          console.log("missing data");
-          notUpdate = false;
-        } else {
-          notUpdate = objectsEqual(oldnote[0], newnote);
-          // console.log("equal objs", notUpdate);
-        }
-        return notUpdate;
-      });
-      // console.log(!notUpdate)
-      if (!notUpdate) {
-        console.log("dispatched");
-        dispatch({
-          type: "update_notifications",
-          notifications: notifications,
-        });
-      }
-      // console.log("background task registered");
-      // BackgroundFetch.registerTaskAsync(BACKGROUND_FETCH_TASK, {
-      //   // minimumInterval: 60 * 15, // 15 minutes
-      //   stopOnTerminate: false, // android only,
-      //   startOnBoot: true, // android only
+      // const datalog = await AsyncStorage.getItem("DN_userlog");
+      // const data = JSON.parse(datalog);
+      // const notifications = data.notifications;
+      // let notUpdate = true;
+      // notifications.every((newnote) => {
+      //   const oldnote = state.notifications.filter(
+      //     (note) => note.id === newnote.id
+      //   );
+      //   // console.log(oldnote, newnote);
+      //   if (oldnote.length === 0) {
+      //     notUpdate = false;
+      //     // console.log("missing data", notUpdate);
+      //   } else {
+      //     notUpdate = objectsEqual(oldnote[0], newnote);
+      //     // console.log("equal objs", notUpdate);
+      //   }
+      //   return notUpdate;
       // });
+      // // console.log(!notUpdate)
+      // if (!notUpdate) {
+      //   // console.log("dispatched");
+      //   dispatch({
+      //     type: "update_notifications",
+      //     notifications: notifications,
+      //   });
+      // }
+
+      await notify(activities);
     }
   }, [state]);
-  // const [status, setStatus] = useState(null);
-
-  // useEffect(() => {
-  //   checkStatusAsync();
-  // }, []);
-
-  // const checkStatusAsync = async () => {
-  //   const status = await BackgroundFetch.getStatusAsync();
-  //   const isRegistered = await TaskManager.isTaskRegisteredAsync(
-  //     BACKGROUND_FETCH_TASK
-  //   );
-  //   setStatus(status);
-  //   setIsRegistered(isRegistered);
-  // };
-
-  // registerBackgroundFetchAsync();
-  // checkStatusAsync();
-  // const toggleFetchTask = async () => {
-  //   if (isRegistered) {
-  //     await unregisterBackgroundFetchAsync();
-  //   } else {
-  //     await registerBackgroundFetchAsync();
-  //   }
-
-  //   checkStatusAsync();
-  // };
 
   return <></>;
 }

@@ -9,7 +9,7 @@ import {
   Alert,
 } from "react-native";
 import { UserContext, toastr, API } from "../globalvars";
-import { COLORS, FONTS, PAGE, SIZES } from "../constants";
+import { COLORS, FONTS, PAGE, SIZES, PAGEHEAD } from "../constants";
 import DropDownPicker from "react-native-dropdown-picker";
 import {
   GestureHandlerRootView,
@@ -38,6 +38,8 @@ export default function CategoryPage() {
   const [owner, setOwner] = useState(false);
   const [groupMenu, setGroupMenu] = useState(false);
 
+  const [activities, setActivities] = useState(state.activities);
+
   let data = {};
 
   useEffect(() => {
@@ -47,16 +49,24 @@ export default function CategoryPage() {
     }
   }, [items]);
 
+  useEffect(() => {
+    const activityGroup = state.activities.filter(
+      (task) => value === def[0].id || task.group_id === value
+    );
+    setActivities(activityGroup);
+  }, [state, value]);
+
   useEffect(async () => {
     if (value !== def[0].id) {
       const userdata = await API.getUserGroups(value);
-      setUsers(userdata);
-      console.log(users)
-      const groupinfo = userdata.filter(
-        (user) => user.username === state.username
-      );
-      if (groupinfo[0].owner) setOwner(true);
-      else setOwner(false);
+      if (userdata.code === 200) {
+        setUsers(userdata.user);
+        const groupinfo = userdata.user.filter(
+          (user) => user.username === state.username
+        );
+        if (groupinfo[0].owner) setOwner(true);
+        else setOwner(false);
+      }
     } else setOwner(true);
   }, [value]);
 
@@ -314,11 +324,20 @@ export default function CategoryPage() {
             setItems={setItems}
           />
         )}
+        {activities.length === 0 && (
+          <Text
+            style={{
+              ...PAGEHEAD,
+              textAlign: "center",
+              marginTop: SIZES.padding,
+            }}
+          >
+            No tasks yet in this category
+          </Text>
+        )}
         <GestureHandlerRootView style={{ flex: 1, marginVertical: 20 }}>
           <FlatList
-            data={state.activities.filter(
-              (task) => value === def[0].id || task.group_id === value
-            )}
+            data={activities}
             renderItem={({ item, index }) => (
               <Card
                 task={item}

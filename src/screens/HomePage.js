@@ -9,11 +9,11 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { Card, ControlButton, Testcomp, Header, UserNotifications } from "../components";
-import { COLORS, SIZES, FONTS, SHADOW, PAGE, PAGEHEAD } from "../constants";
+import { Card, ControlButton, Header } from "../components";
+import { COLORS, SIZES, FONTS, PAGE, PAGEHEAD } from "../constants";
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
-import { CALENDRIFIC } from "@env";
+// import { CALENDRIFIC } from "@env";
 import { UserContext, toastr, API } from "../globalvars";
 
 export default function HomePage({ navigation }) {
@@ -37,10 +37,34 @@ export default function HomePage({ navigation }) {
   };
 
   useEffect(() => {
-    setList(state.activities);
-  }, [state]);
+    let daysActivities = [];
+    if (date.toDateString() === new Date().toDateString())
+      daysActivities = state.activities.filter(
+        (task) =>
+          task.datetime &&
+          new Date(task.datetime).toDateString() === date.toDateString()
+      );
 
-  const [holiday, setHoliday] = useState("");
+    if (date > new Date())
+      daysActivities = state.activities.filter(
+        (task) =>
+          task.datetime &&
+          new Date(task.datetime).toDateString() === date.toDateString()
+      );
+
+    if (
+      !(date > new Date() || date.toDateString() === new Date().toDateString())
+    )
+      daysActivities = state.activities.filter(
+        (task) =>
+          task.datetime &&
+          task.completed &&
+          new Date(task.datetime).toDateString() === date.toDateString()
+      );
+    setList(daysActivities);
+  }, [state, date]);
+
+  // const [holiday, setHoliday] = useState("");
   // useEffect(() => {
   //   if (holiday === "") {
   //     // let day = new Date().getDate();
@@ -179,7 +203,7 @@ export default function HomePage({ navigation }) {
               />
             </TouchableOpacity>
           </Pressable>
-          {holiday !== "" && (
+          {/* {holiday !== "" && (
             <Text
               style={{
                 ...PAGEHEAD,
@@ -192,37 +216,21 @@ export default function HomePage({ navigation }) {
             >
               {holiday}
             </Text>
-          )}
+          )} */}
         </View>
         <GestureHandlerRootView style={{ flex: 1 }}>
           {/*calender icon which opens a calender modal with dates that have tasks highlighted as well as selected date*/}
           {date.toDateString() === new Date().toDateString() && (
             <>
               <Text style={PAGEHEAD}>What to do today</Text>
-              {list.filter(
-                (task) =>
-                  task.datetime &&
-                  !task.completed &&
-                  new Date(task.datetime).toDateString() === date.toDateString()
-              ).length !== 0 && (
+              {list.length !== 0 && (
                 <FlatList
-                  data={list.filter(
-                    (task) =>
-                      task.datetime &&
-                      !task.completed &&
-                      new Date(task.datetime).toDateString() ===
-                        date.toDateString()
-                  )}
+                  data={list.filter((task) => !task.completed)}
                   renderItem={renderItem}
                   keyExtractor={(item) => `${item.id}`}
                 />
               )}
-              {list.filter(
-                (task) =>
-                  task.datetime &&
-                  !task.completed &&
-                  new Date(task.datetime).toDateString() === date.toDateString()
-              ).length === 0 && (
+              {list.filter((task) => !task.completed).length === 0 && (
                 <Text style={styles.empty}>
                   {list.filter(
                     (task) =>
@@ -235,22 +243,11 @@ export default function HomePage({ navigation }) {
                     : "Nothing planned for today"}
                 </Text>
               )}
-              {list.filter(
-                (task) =>
-                  task.datetime &&
-                  task.completed &&
-                  new Date(task.datetime).toDateString() === date.toDateString()
-              ).length !== 0 && (
+              {list.filter((task) => task.completed).length !== 0 && (
                 <>
                   <Text style={PAGEHEAD}>What you did today</Text>
                   <FlatList
-                    data={list.filter(
-                      (task) =>
-                        task.completed &&
-                        task.datetime &&
-                        new Date(task.datetime).toDateString() ===
-                          date.toDateString()
-                    )}
+                    data={list.filter((task) => task.completed)}
                     renderItem={renderItem}
                     keyExtractor={(item) => `${item.id}`}
                   />
@@ -258,30 +255,31 @@ export default function HomePage({ navigation }) {
               )}
             </>
           )}
-          {date.toDateString() !== new Date().toDateString() && (
+          {date > new Date() && (
             <>
               <Text style={PAGEHEAD}>
-                {date < new Date() &&
-                  "What you did on " + date.toDateString().substring(4, 10)}
-                {date > new Date() &&
-                  "What to do on " + date.toDateString().substring(4, 10)}
+                {"What to do on " + date.toDateString().substring(4, 10)}
               </Text>
-              {date > new Date() &&
-                list.filter(
-                  (task) =>
-                    task.datetime &&
-                    new Date(task.datetime).toDateString() ===
-                      date.toDateString()
-                ).length === 0 && (
-                  <Text style={styles.empty}>Nothing planned for this day</Text>
-                )}
+              {list.length === 0 && (
+                <Text style={styles.empty}>Nothing planned for this day</Text>
+              )}
               <FlatList
-                data={list.filter(
-                  (task) =>
-                    task.datetime &&
-                    new Date(task.datetime).toDateString() ===
-                      date.toDateString()
-                )}
+                data={list}
+                renderItem={renderItem}
+                keyExtractor={(item) => `${item.id}`}
+              />
+            </>
+          )}
+          {!(
+            date > new Date() ||
+            date.toDateString() === new Date().toDateString()
+          ) && (
+            <>
+              <Text style={PAGEHEAD}>
+                {"What you did on " + date.toDateString().substring(4, 10)}
+              </Text>
+              <FlatList
+                data={list}
                 renderItem={renderItem}
                 keyExtractor={(item) => `${item.id}`}
               />
@@ -290,7 +288,6 @@ export default function HomePage({ navigation }) {
         </GestureHandlerRootView>
       </View>
       <ControlButton addTask={addTask} />
-      {/* <UserNotifications /> */}
     </>
   );
 }

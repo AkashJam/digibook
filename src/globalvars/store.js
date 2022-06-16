@@ -1,15 +1,46 @@
 import React, { useReducer } from "react";
-import { toastr } from "./";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import Toast from "react-native-root-toast";
+
+const toastTime = 8000;
+
+const toastr = (msg, duration = toastTime) => {
+  // Add a Toast on screen.
+  let toast = Toast.show(msg, {
+    duration: Toast.durations.LONG,
+    // position: Dimensions.get("window").height/1.005,
+    // backgroundColor: COLORS.secondary,
+  });
+
+  // You can manually hide the Toast, or it will automatically disappear after a `duration` ms timeout.
+  setTimeout(function hideToast() {
+    Toast.hide(toast);
+  }, duration);
+};
+
+const activity = {
+  id: 0,
+  description: "test activity",
+  group_id: "0",
+  notify: false,
+  location: { type: "custom", latitude: 0, longitude: 0 },
+  datetime: new Date(),
+  completed: false,
+  createdOn: new Date().toString(),
+  modifiedOn: null,
+};
 
 const user = {
   id: 0,
-  username: "",
+  username: "tester",
   displayName: null,
   range: 0.75,
   collaborators: [],
-  groups: [],
-  activities: [],
+  groups: [
+    { id: 0, name: "All" },
+    { id: 1, name: "Test" },
+  ],
+  activities: [activity],
   notifications: [],
   locations: {},
 };
@@ -353,4 +384,4 @@ const UserProvider = ({ children }) => {
   );
 };
 
-export { UserContext, UserProvider };
+export { UserContext, UserProvider, toastr };
